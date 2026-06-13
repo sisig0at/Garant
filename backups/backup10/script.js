@@ -586,29 +586,17 @@
         if (pageId === 'adminPage' && currentUser && currentUser.role === 'admin') { adminUserPage = 1; renderAdminPanel(); }
         if (pageId === 'reviewsPage') renderReviews();
         if (pageId === 'homePage') {
+            startLiveFeed();
             setTimeout(initFaq, 100);
         }
     }
 
-    async function loadInitialDeals() {
-        const { data, error } = await sb
-            .from('recent_deals')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(3);
-        if (error) {
-            console.error("Ошибка загрузки стартовых сделок:", error);
-            return;
-        }
-        console.log("Стартовые сделки загружены из БД:", data);
-        renderRecentDealsList(data);
-    }
-
-    function renderRecentDealsList(data) {
+    async function loadRecentDeals() {
         var feedDiv = document.getElementById('liveDealsFeed');
-        if (!feedDiv || !data) return;
-        if (data.length > 0) {
-            lastDealsFeedArray = data.slice().reverse().map(function(d) {
+        if (!feedDiv) return;
+        var r = await sb.from('recent_deals').select('*').order('created_at', { ascending: false }).limit(3);
+        if (!r.error && r.data && r.data.length > 0) {
+            lastDealsFeedArray = r.data.reverse().map(function(d) {
                 return escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
             });
             feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
@@ -660,6 +648,7 @@
         if (!feedDiv) return;
         if (feedDiv.getAttribute('data-live-running')) return;
         feedDiv.setAttribute('data-live-running', 'true');
+        loadRecentDeals();
     }
 
     // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (каждые 2–5 мин) =====
@@ -1485,29 +1474,30 @@
     // ===== БЛОКИРУЮЩАЯ ИНИЦИАЛИЗАЦИЯ =====
 
     async function initApp() {
-        console.log("Приложение загружается, проверяем сессию...");
         document.body.style.visibility = 'hidden';
 
-        // 1. Сначала жестко дожидаемся ответа о сессии
+        // 1. Сначала проверяем сессию — блокирует весь UI
+        console.log('[Session] Проверка сессии...');
         const { data: { session }, error } = await sb.auth.getSession();
         if (error) console.error('[Session] Ошибка getSession:', error);
 
         // 2. Загружаем все данные из БД
+        console.log('[Init] Загрузка данных...');
         await loadAllData();
 
         // 3. Восстанавливаем пользователя по сессии
         if (session && session.user && session.user.email) {
             var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
-            console.log("Сессия успешно восстановлена для:", session.user.id);
+            console.log('[Session] Сессия найдена:', session.user.id, sessionLogin);
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
                 console.log('[Session] Пользователь восстановлен:', currentUser.login);
             } else {
-                console.log("Активной сессии не найдено, включаем гостевой режим.");
+                console.log('[Session] Пользователь не найден или забанен');
             }
         } else {
-            console.log("Активной сессии не найдено, включаем гостевой режим.");
+            console.log('[Session] Сессия отсутствует — гость');
         }
 
         // 4. Отрисовываем UI
@@ -1515,18 +1505,16 @@
         updateGlobalStats();
         renderReviews();
         renderDeals();
+        await loadRecentDeals();
 
-        // 5. Загружаем стартовые сделки из БД
-        await loadInitialDeals();
-
-        // 6. Подключаем Realtime каналы
+        // 5. Подключаем Realtime каналы
         console.log('[Realtime] Настройка подписок...');
         setupRealtimeSubscriptions();
 
-        // 7. Запускаем таймер фейковых сделок
+        // 6. Запускаем таймер фейковых сделок
         startFakeDealsTimer();
 
-        // 8. Показываем страницу
+        // 7. Показываем страницу
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
         showPage('homePage');
@@ -1544,5 +1532,5 @@
         console.log('[Init] Инициализация завершена');
     }
 
-    document.addEventListener('DOMContentLoaded', initApp);
+    initApp();
 })();
