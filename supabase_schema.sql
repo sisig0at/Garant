@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS public.recent_deals (
 );
 
 -- ========== ВКЛЮЧЕНИЕ REALTIME ДЛЯ ТАБЛИЦ ==========
-ALTER PUBLICATION supabase_realtime ADD TABLE public.recent_deals;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.deals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deal_messages;
 
 -- ========== ОТКЛЮЧЕНИЕ RLS (управление доступом на стороне приложения) ==========

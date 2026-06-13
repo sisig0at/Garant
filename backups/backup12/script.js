@@ -246,11 +246,6 @@
     // ===== UI RENDER =====
 
     async function updateUI() {
-        if (currentUser) {
-            localStorage.setItem('vg_user', JSON.stringify({ login: currentUser.login, role: currentUser.role, balance: currentUser.balance }));
-        } else {
-            localStorage.removeItem('vg_user');
-        }
         let isGuest = !currentUser;
         let nameEl = document.getElementById('userNameDisplay');
         if (nameEl) {
@@ -603,16 +598,15 @@
 
     async function loadInitialDeals() {
         const { data, error } = await sb
-            .from('deals')
+            .from('recent_deals')
             .select('*')
-            .eq('status', 'completed')
             .order('created_at', { ascending: false })
             .limit(3);
         if (error) {
             console.error("Ошибка загрузки стартовых сделок:", error);
             return;
         }
-        console.log("Стартовые сделки загружены из БД (deals):", data);
+        console.log("Стартовые сделки загружены из БД:", data);
         renderRecentDealsList(data);
     }
 
@@ -631,12 +625,10 @@
 
     function setupRealtimeSubscriptions() {
         // ---- Канал для ленты сделок ----
-        sb.channel('deals-feed')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
+        sb.channel('recent-deals')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'recent_deals' }, function(payload) {
                 var d = payload.new;
-                if (d.status !== 'completed') return;
-                if (payload.eventType === 'UPDATE' && payload.old && payload.old.status === 'completed') return;
-                console.log('[Realtime] Новая завершённая сделка:', d);
+                console.log('[Realtime] Новая сделка в ленте:', d);
                 var feedDiv = document.getElementById('liveDealsFeed');
                 if (!feedDiv) return;
                 var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
@@ -647,7 +639,7 @@
                 }).join('');
             })
             .subscribe(function(status) {
-                console.log('[Realtime] Статус канала deals-feed:', status);
+                console.log('[Realtime] Статус канала recent-deals:', status);
             });
 
         // ---- Канал для чата сделок ----
@@ -686,12 +678,11 @@
         var amount = Math.floor(Math.random() * 3401) + 100;
         var item = items[Math.floor(Math.random() * items.length)];
         try {
-            var res = await sb.from('deals').insert({
+            var res = await sb.from('recent_deals').insert({
                 seller: seller,
                 buyer: buyer,
                 amount: amount,
                 item: item,
-                status: 'completed',
                 created_at: new Date().toISOString()
             });
             if (!res.error) {
@@ -1213,6 +1204,15 @@
         });
         updateGlobalStats();
 
+        // Add to recent deals in DB (синхронизация ленты для всех пользователей)
+        await sb.from('recent_deals').insert({
+            seller: deal.seller,
+            buyer: deal.buyer,
+            amount: deal.amount,
+            item: deal.item,
+            created_at: new Date().toISOString()
+        });
+
         // Check achievements for seller
         await checkAndAwardAchievements(deal.seller);
 
@@ -1523,21 +1523,6 @@
             }
         } else {
             console.log("Точка Г-INFO: Активной сессии не найдено, включаем гостевой режим.");
-        }
-
-        // Fallback: если Supabase не дал сессию, пробуем localStorage
-        if (!currentUser) {
-            var saved = localStorage.getItem('vg_user');
-            if (saved) {
-                try {
-                    var parsed = JSON.parse(saved);
-                    var u = findUserByLogin(parsed.login);
-                    if (u && !u.banned) {
-                        currentUser = u;
-                        console.log("Точка Г-FALLBACK: Пользователь восстановлен из localStorage:", currentUser.login);
-                    }
-                } catch(e) {}
-            }
         }
 
         // 4. Отрисовываем UI
