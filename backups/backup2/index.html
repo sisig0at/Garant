@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>VioletGuard | Абсолютная безопасность сделок</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="hero-animation">
+    <div class="hero-logo"><i class="fas fa-gem"></i></div>
+    <div class="hero-text">VioletGuard</div>
+</div>
+
+<div class="navbar">
+    <div class="nav-container">
+        <div class="logo" id="logoHome"><i class="fas fa-gem"></i> VioletGuard</div>
+        <div class="nav-links" id="navLinks">
+            <a data-page="home" class="active"><i class="fas fa-home"></i> Главная</a>
+            <a data-page="deals" id="navDeals" style="display:none;"><i class="fas fa-handshake"></i> Сделки</a>
+            <a data-page="reviews" id="navReviews" style="display:none;"><i class="fas fa-star"></i> Отзывы</a>
+            <a data-page="support" id="navSupport" style="display:none;"><i class="fas fa-headset"></i> Поддержка</a>
+            <a data-page="profile" id="navProfile" style="display:none;"><i class="fas fa-user"></i> Профиль</a>
+            <a data-page="admin" id="navAdmin" style="display:none;"><i class="fas fa-crown"></i> Админ</a>
+            <a data-page="help"><i class="fas fa-question-circle"></i> Помощь</a>
+        </div>
+        <div class="user-info">
+            <i class="fas fa-user-circle"></i> <span id="userNameDisplay">Гость</span>
+            <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
+            <button id="authBtn" class="premium-auth-btn"><i class="fas fa-sign-in-alt"></i> <span>Вход</span></button>
+            <button id="themeToggle" class="theme-btn" title="Сменить тему"><i class="fas fa-moon"></i></button>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="appContainer">
+    <div id="mainContent">
+        <!-- ГЛАВНАЯ -->
+        <div id="homePage">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                    <div><h2><i class="fas fa-shield-alt"></i> Абсолютная безопасность сделок</h2></div>
+                    <div><span class="trust-badge silver"><i class="fas fa-check-circle"></i> Лицензия №VG2026</span></div>
+                </div>
+                <p style="margin: 20px 0; line-height: 1.6;">VioletGuard — премиум гарант-сервис с многолетней репутацией. Более 150 000 успешных транзакций. Мы используем эскроу-счета и блокчейн-верификацию. Ваши средства защищены юридически.</p>
+                <div class="fake-img"><i class="fas fa-chart-line fa-3x"></i><span>Статистика обращений: 99.7% положительных решений</span><i class="fas fa-lock fa-3x"></i></div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card"><i class="fas fa-chart-simple"></i> Общий оборот<div class="stat-value" id="totalVolume">0 ₽</div></div>
+                    <div class="stat-card"><i class="fas fa-check-circle"></i> Завершённых сделок<div class="stat-value" id="completedCount">0</div></div>
+                    <div class="stat-card"><i class="fas fa-star"></i> Рейтинг сервиса<div class="stat-value" id="ratingValue">4.6</div></div>
+                    <div class="stat-card"><i class="fas fa-users"></i> Онлайн сейчас<div class="stat-value" id="onlineCount">341</div></div>
+                </div>
+
+                <div style="background: #0a0418; border-radius: 28px; padding: 20px; margin: 20px 0;">
+                    <h4><i class="fas fa-clock"></i> Последние сделки</h4>
+                    <div id="liveDealsFeed" style="font-size: 13px; color: #bbb;"></div>
+                </div>
+
+                <div style="display: flex; gap: 20px; justify-content: space-around; flex-wrap: wrap; margin: 20px 0;">
+                    <div class="feature-block" id="infoSpoofing"><i class="fas fa-microchip"></i><strong>Защита от спуфинга</strong><div style="font-size: 12px; margin-top: 8px;">Нажмите для подробностей</div></div>
+                    <div class="feature-block" id="infoLegal"><i class="fas fa-file-signature"></i><strong>Юридическая гарантия</strong><div style="font-size: 12px; margin-top: 8px;">Нажмите для подробностей</div></div>
+                    <div class="feature-block" id="infoPhishing"><i class="fas fa-shield-virus"></i><strong>Антифишинг</strong><div style="font-size: 12px; margin-top: 8px;">Нажмите для подробностей</div></div>
+                </div>
+
+                <h3 style="margin: 40px 0 15px 0;"><i class="fas fa-gem"></i> Ключевые преимущества</h3>
+                <div class="stats-grid">
+                    <div class="stat-card"><i class="fas fa-shield-virus fa-2x"></i><br><strong>Безопасность</strong><br>2FA, шифрование, защита от спуфинга</div>
+                    <div class="stat-card"><i class="fas fa-bolt fa-2x"></i><br><strong>Скорость</strong><br>Сделка за 5–10 минут, мгновенный вывод</div>
+                    <div class="stat-card"><i class="fas fa-headset fa-2x"></i><br><strong>Поддержка 24/7</strong><br>Ответ за 24 секунды, решаем любые вопросы</div>
+                    <div class="stat-card"><i class="fas fa-file-contract fa-2x"></i><br><strong>Юридическая гарантия</strong><br>Договор оферты, помощь в суде</div>
+                </div>
+
+                <h3 style="margin: 40px 0 15px 0;"><i class="fas fa-question-circle"></i> Часто задаваемые вопросы</h3>
+                <div class="faq-accordion" id="faqAccordion">
+                    <div class="faq-item">
+                        <div class="faq-question">Какая комиссия за сделку?</div>
+                        <div class="faq-answer">Комиссия составляет 0.5% от суммы сделки, но не менее 50 ₽. Для пользователей с высоким уровнем доверия комиссия снижена до 0.3%.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Как долго выводятся средства?</div>
+                        <div class="faq-answer">Вывод на банковскую карту занимает до 24 часов, на криптокошелёк – до 2 часов. Мы стараемся обрабатывать заявки мгновенно.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Что делать, если возник спор?</div>
+                        <div class="faq-answer">Нажмите кнопку «Арбитраж» на странице сделки. Модератор рассмотрит спор и вынесет решение в течение 48 часов.</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Можно ли отменить сделку?</div>
+                        <div class="faq-answer">Если сделка ещё не оплачена, продавец может её удалить. После оплаты отмена возможна только через арбитраж.</div>
+                    </div>
+                </div>
+
+                <div id="guestMessage" style="background: #1a0a3a; border-radius: 32px; padding: 30px; text-align: center; display: none;">
+                    <i class="fas fa-user-plus fa-3x"></i>
+                    <h3>Зарегистрируйтесь для доступа к сделкам и чату</h3>
+                    <button id="guestRegisterBtn" style="margin-top: 15px;">Создать аккаунт</button>
+                </div>
+            </div>
+            <div class="card">
+                <h4><i class="fas fa-certificate"></i> Партнёры и сертификаты</h4>
+                <div class="fake-img" style="justify-content: space-around;">
+                    <i class="fab fa-cc-visa fa-3x"></i> <i class="fab fa-bitcoin fa-3x"></i> <i class="fas fa-shield-alt fa-3x"></i> <i class="fab fa-ethereum fa-3x"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- СДЕЛКИ -->
+        <div id="dealsPage" class="hidden-page">
+            <div class="card"><h3><i class="fas fa-plus-circle"></i> Новая сделка</h3>
+                <input type="text" id="itemName" placeholder="Название товара / услуги">
+                <input type="number" id="dealAmount" placeholder="Сумма (₽)">
+                <input type="text" id="sellerName" placeholder="Ваш ник (продавец)">
+                <input type="text" id="buyerName" placeholder="Ник покупателя">
+                <button id="createDealBtn"><i class="fas fa-shield-alt"></i> Создать сделку</button>
+            </div>
+            <div class="card"><h3><i class="fas fa-list-ul"></i> Мои сделки</h3><div id="allDealsList"></div></div>
+        </div>
+
+        <!-- ОТЗЫВЫ -->
+        <div id="reviewsPage" class="hidden-page">
+            <div class="card"><h3><i class="fas fa-star"></i> Отзывы реальных пользователей</h3><div id="reviewsList"></div><button id="addReviewBtn">Оставить отзыв</button></div>
+        </div>
+
+        <!-- ПОДДЕРЖКА -->
+        <div id="supportPage" class="hidden-page">
+            <div class="card">
+                <h3 style="text-align: center;"><i class="fas fa-headset"></i> Круглосуточная поддержка</h3>
+                <div class="faq-buttons" style="display:flex; gap:15px; flex-wrap:wrap; justify-content:center; margin-bottom:15px;">
+                    <button class="faq-btn" data-question="как вывести средства">Вывод</button>
+                    <button class="faq-btn" data-question="пополнение баланса">Пополнение</button>
+                    <button class="faq-btn" data-question="создать сделку">Создать сделку</button>
+                    <button class="faq-btn" data-question="статус сделки">Статус сделки</button>
+                    <button class="faq-btn" data-question="уровень доверия">Уровень доверия</button>
+                </div>
+                <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                    <button id="contactSupportBtn" style="background: #c084fc; color: #1a0a3a;"><i class="fas fa-envelope"></i> Связаться с поддержкой</button>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message message-bot"><i class="fas fa-robot"></i> Добро пожаловать в чат поддержки. Напишите вопрос или выберите быстрый запрос.</div>
+                </div>
+                <div style="display:flex; gap:12px;"><input type="text" id="chatInput" placeholder="Ваше сообщение..." style="flex:1;"><button id="sendChatBtn">Отправить</button></div>
+                <div class="fake-img" style="margin-top:15px; height:60px;"><i class="fas fa-clock"></i> Среднее время ответа: 24 секунды</div>
+            </div>
+        </div>
+
+        <!-- ПРОФИЛЬ -->
+        <div id="profilePage" class="hidden-page">
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
+                    <div><i class="fas fa-user-circle fa-6x" style="color:#c084fc;"></i></div>
+                    <div>
+                        <h2 id="profileName" style="font-size: 32px;"></h2>
+                        <div id="profileBadge"></div>
+                        <div id="profileRating" class="profile-rating"></div>
+                        <div id="profileAchievements" class="profile-achievements"></div>
+                    </div>
+                </div>
+                <div class="profile-stats-grid" id="profileInfo"></div>
+                <div class="progress-bar"><div class="progress-fill" id="trustProgress"></div></div>
+                <div style="margin-top: 10px;"><span class="trust-percent" id="trustPercent">0</span>% <span class="trust-label">уровень доверия</span></div>
+                <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
+                    <button id="rechargeBalanceBtn"><i class="fas fa-plus-circle"></i> Пополнить</button>
+                    <button id="withdrawBalanceBtn"><i class="fas fa-minus-circle"></i> Вывести</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- АДМИН-ПАНЕЛЬ -->
+        <div id="adminPage" class="hidden-page">
+            <div class="card">
+                <h3><i class="fas fa-crown"></i> Панель управления VioletGuard</h3>
+                <div class="stats-grid" id="adminStats"></div>
+                <h4>Пользователи</h4><div id="userListAdmin" style="max-height: 250px; overflow-y: auto; margin-bottom: 20px;"></div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="adminLogin" placeholder="Логин"><input type="number" id="adminAmount" placeholder="Сумма"><button id="adminAddBalance">Начислить</button><button id="adminSetBalance">Установить баланс</button><button id="adminPromote">Сделать админом</button><button id="adminBan">Бан/Разбан</button></div>
+                <h4>Сделки</h4><div id="adminDealsList"></div>
+                <h4>Управление сайтом</h4>
+                <div><input type="number" id="fakeOnlineVal" placeholder="Онлайн"><button id="setOnline">Установить онлайн</button></div>
+                <div><input type="number" id="addTurnoverVal" placeholder="Сумма для добавления к обороту"><button id="addTurnover">+ к обороту</button></div>
+                <div><input type="number" id="setRatingVal" placeholder="Новый рейтинг (0-5)"><button id="setRatingBtn">Изменить рейтинг</button></div>
+                <div><input type="number" id="setCompletedVal" placeholder="Количество завершённых сделок"><button id="setCompletedBtn">Установить завершённые</button></div>
+                <div><button id="resetDB" style="background:#d32f2f;">Сбросить БД</button></div>
+                <h4>Массовая рассылка</h4><div><textarea id="broadcastMsg" rows="2" placeholder="Текст уведомления для всех"></textarea><button id="sendBroadcast">Разослать</button></div>
+            </div>
+        </div>
+
+        <!-- ПОМОЩЬ (расширенная информация) -->
+        <div id="helpPage" class="hidden-page">
+            <div class="card">
+                <h3><i class="fas fa-question-circle"></i> Справка по работе с сервисом</h3>
+                <p><strong>VioletGuard</strong> — это современный гарант-сервис, обеспечивающий безопасное проведение сделок между продавцами и покупателями в интернете. Мы блокируем средства на время сделки и переводим их только после подтверждения обеими сторонами.</p>
+                
+                <h4>Как работает гарант?</h4>
+                <p>Продавец создаёт сделку, указывая название товара, сумму и покупателя. Покупатель открывает сделку, оплачивает её – деньги замораживаются на гаранте. После того как покупатель получил товар и убедился в его качестве, он нажимает кнопку «Подтвердить получение». Средства мгновенно переводятся продавцу. Если что-то пошло не так, можно открыть арбитраж, и модератор разберётся в ситуации.</p>
+                
+                <h4>Регистрация и вход</h4>
+                <p>Для работы с сервисом необходимо создать аккаунт. Нажмите кнопку «Вход» в правом верхнем углу, затем «Нет аккаунта? Регистрация». Первый зарегистрировавшийся пользователь автоматически получает права администратора. Также существует мастер-логин для администратора: <strong>violet_admin / admin2025</strong>.</p>
+                
+                <h4>Уровень доверия</h4>
+                <p>Уровень доверия растёт с суммой пополнений (максимум 50 000 ₽ = 100%). Чем выше уровень, тем ниже комиссия за вывод средств (до 0.3%) и приоритетнее поддержка.</p>
+                
+                <h4>Пополнение и вывод средств</h4>
+                <p>Пополнить баланс можно в профиле через банки (СБЕР, Т‑Банк, ВТБ) или криптовалюту (USDT, BTC, ETH) – все операции демонстрационные. Вывод средств осуществляется на указанные реквизиты после создания заявки. Обработка заявки на вывод занимает до 24 часов.</p>
+                
+                <h4>Безопасность</h4>
+                <p>Все данные хранятся локально в вашем браузере. Сервис использует имитацию эскроу-счетов и предоставляет юридическую гарантию для каждой сделки. Мы активно боремся с фишингом и подменой данных. Включена двухфакторная аутентификация (2FA), защита от спуфинга, белые списки адресов кошельков.</p>
+                
+                <h4>Часто задаваемые вопросы (FAQ)</h4>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>Какая комиссия?</strong> – 0.5% от суммы, но не менее 50 ₽. Для высокого уровня доверия – 0.3%.</li>
+                    <li><strong>Как долго выводятся средства?</strong> – Карты: до 24 часов, крипта: до 2 часов.</li>
+                    <li><strong>Что делать, если возник спор?</strong> – Нажмите «Арбитраж» на странице сделки. Решение в течение 48 часов.</li>
+                    <li><strong>Можно ли отменить сделку?</strong> – До оплаты – удалить; после оплаты – только через арбитраж.</li>
+                </ul>
+                
+                <h4>Контакты поддержки</h4>
+                <p>Если у вас возникли вопросы, вы можете воспользоваться чатом поддержки во вкладке «Поддержка» или написать на почту <strong>support@violetguard.com</strong>. Операторы отвечают в среднем за 24 секунды.</p>
+                
+                <button id="closeHelpBtn" style="margin-top: 20px;">Вернуться на главную</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА ОТДЕЛЬНОЙ СДЕЛКИ -->
+    <div id="singleDealPage" style="display: none;">
+        <div class="card">
+            <div id="singleDealHeader">
+                <h2 id="singleDealTitle"></h2>
+                <button id="backToMainBtn" class="premium-auth-btn" style="margin-bottom: 20px;"><i class="fas fa-arrow-left"></i> На главную</button>
+            </div>
+            <div id="singleDealDetails" class="profile-stats-grid" style="grid-template-columns: 1fr;"></div>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin: 20px 0;">
+                <button id="singlePayBtn" style="display: none; background: #a855f7;">Оплатить</button>
+                <button id="singleConfirmBtn" style="display: none; background: #00cc66;"><i class="fas fa-check-circle"></i> Подтвердить получение</button>
+                <button id="singleDisputeBtn" style="display: none; background: #ff8800;"><i class="fas fa-gavel"></i> Арбитраж</button>
+            </div>
+            <div class="chat-messages" id="singleDealChat" style="height: 350px; margin-top: 20px;"></div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <input type="text" id="singleDealChatInput" placeholder="Ваше сообщение..." style="flex: 1;">
+                <button id="singleDealChatSendBtn">Отправить</button>
+            </div>
+        </div>
+    </div>
+    <footer><i class="fas fa-shield-alt"></i> VioletGuard — зарегистрированная торговая марка. Все права защищены.</footer>
+</div>
+
+<!-- МОДАЛЬНЫЕ ОКНА -->
+<div id="authModal" class="modal"><div class="modal-content"><h3 id="authTitle">Вход</h3><input id="authLogin" placeholder="Логин"><input id="authPass" type="password" placeholder="Пароль"><button id="authSubmit" style="width:100%; margin-top:10px;">Войти</button><div style="margin-top:15px; text-align:center;"><button id="switchAuth" style="background:none; border:none; color:#c084fc; cursor:pointer; text-decoration:underline;">Нет аккаунта? Регистрация</button></div><button id="closeAuth" style="margin-top:15px; background:#2a1a5a; width:100%;">Закрыть</button></div></div>
+<div id="reviewModal" class="modal"><div class="modal-content"><h3>Ваш отзыв</h3><select id="revRating"><option value="5">5★</option><option value="4">4★</option><option value="3">3★</option><option value="2">2★</option><option value="1">1★</option></select><textarea id="revText" rows="3"></textarea><button id="submitReview">Оставить</button><button id="closeRev">Отмена</button></div></div>
+<div id="ratingModal" class="modal"><div class="modal-content"><h3>Оцените сделку</h3><p id="ratingDealInfo"></p><select id="ratingStars"><option value="5">5 ★ — Отлично</option><option value="4">4 ★ — Хорошо</option><option value="3">3 ★ — Нормально</option><option value="2">2 ★ — Плохо</option><option value="1">1 ★ — Ужасно</option></select><textarea id="ratingText" rows="3" placeholder="Напишите отзыв о продавце (необязательно)"></textarea><button id="submitRating">Отправить оценку</button><button id="closeRating">Пропустить</button></div></div>
+<div id="rechargeModal" class="modal"><div class="modal-content" style="text-align:center;"><h3>Пополнение баланса</h3><div class="recharge-banks" style="display:flex; flex-direction:column; gap:12px; margin:20px 0;"><button class="bank-btn" data-method="sber">СБЕР</button><button class="bank-btn" data-method="tbank">Т-Банк</button><button class="bank-btn" data-method="vtb">ВТБ</button><button id="cryptoRechargeBtn" class="bank-btn" style="background:#6d28d9;">Криптовалюта</button></div><div id="cryptoOptions" style="display:none; gap:12px; flex-direction:column; margin-bottom:20px;"><button class="crypto-btn" data-crypto="usdt">USDT (TRC20)</button><button class="crypto-btn" data-crypto="btc">BTC</button><button class="crypto-btn" data-crypto="eth">ETH</button></div><button id="closeRecharge" style="margin-top:15px;">Закрыть</button></div></div>
+<div id="withdrawModal" class="modal"><div class="modal-content"><h3>Вывод</h3><input type="number" id="withdrawSum" placeholder="Сумма"><input type="text" id="withdrawDetails" placeholder="Реквизиты (кошелек)"><button id="doWithdraw">Запросить вывод</button><button id="closeWithdraw">Отмена</button></div></div>
+<div id="paymentModal" class="modal"><div class="modal-content" style="text-align:center;"><h3>Подтверждение оплаты</h3><p id="modalAmount" style="margin:15px 0; font-size:24px;"></p><div class="modal-buttons-group" style="justify-content:center;"><button id="payBalance">Подтвердить</button><button id="closePay">Отмена</button></div></div></div>
+<div id="infoModal" class="modal"><div class="modal-content"><h3 id="infoModalTitle"></h3><p id="infoModalText" style="margin:20px 0; line-height:1.5;"></p><button id="closeInfoModal">Закрыть</button></div></div>
+
+<script src="config.js" defer></script>
+<script src="script.js" defer></script>
+</body>
+</html>
