@@ -1211,7 +1211,7 @@
             if (currentUser.login === seller.login) currentUser.balance = seller.balance;
             await upsertUser(seller);
         }
-        await updateDeal(deal.id, { status: 'completed', created_at: new Date().toISOString() });
+        await updateDeal(deal.id, { status: 'completed' });
 
         var sysMsg = { deal_id: deal.id, sender: 'Система', text: 'Покупатель подтвердил получение товара. Деньги переведены продавцу.', timestamp: new Date().toLocaleString(), system: true };
         await insertDealMessage(deal.id, sysMsg);
