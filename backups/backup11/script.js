@@ -2,13 +2,7 @@
     'use strict';
 
     if (typeof supabase === 'undefined' || typeof SUPABASE_CONFIG === 'undefined') return;
-    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
-        auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true
-        }
-    });
+    const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
     let currentUser = null;
     let users = [];
@@ -1491,49 +1485,38 @@
     // ===== БЛОКИРУЮЩАЯ ИНИЦИАЛИЗАЦИЯ =====
 
     async function initApp() {
-        console.log("Точка А: Приложение загружается, проверяем сессию...");
+        console.log("Приложение загружается, проверяем сессию...");
         document.body.style.visibility = 'hidden';
 
-        // Небольшая пауза, чтобы SDK гарантированно прочитал токены из памяти браузера
-        console.log("Точка А.1: Ожидаем 200мс перед getSession...");
-        await new Promise(function(resolve) { setTimeout(resolve, 200); });
-
         // 1. Сначала жестко дожидаемся ответа о сессии
-        console.log("Точка Б: Вызываем sb.auth.getSession()...");
         const { data: { session }, error } = await sb.auth.getSession();
         if (error) console.error('[Session] Ошибка getSession:', error);
-        console.log("Точка Б.1: getSession() завершён, session =", session ? session.user.id : null);
 
         // 2. Загружаем все данные из БД
-        console.log("Точка В: Загружаем данные из БД...");
         await loadAllData();
-        console.log("Точка В.1: Данные загружены, users =", users.length, "deals =", deals.length);
 
         // 3. Восстанавливаем пользователя по сессии
-        console.log("Точка Г: Восстанавливаем пользователя...");
         if (session && session.user && session.user.email) {
             var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
-            console.log("Сессия успешно восстановлена для:", session.user.id, "login:", sessionLogin);
+            console.log("Сессия успешно восстановлена для:", session.user.id);
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
                 console.log('[Session] Пользователь восстановлен:', currentUser.login);
             } else {
-                console.log("Точка Г-ERROR: Пользователь не найден или забанен, включаем гостевой режим.");
+                console.log("Активной сессии не найдено, включаем гостевой режим.");
             }
         } else {
-            console.log("Точка Г-INFO: Активной сессии не найдено, включаем гостевой режим.");
+            console.log("Активной сессии не найдено, включаем гостевой режим.");
         }
 
         // 4. Отрисовываем UI
-        console.log("Точка Д: Отрисовываем UI...");
         updateUI();
         updateGlobalStats();
         renderReviews();
         renderDeals();
 
         // 5. Загружаем стартовые сделки из БД
-        console.log("Точка Е: Загружаем стартовые сделки...");
         await loadInitialDeals();
 
         // 6. Подключаем Realtime каналы
@@ -1544,7 +1527,6 @@
         startFakeDealsTimer();
 
         // 8. Показываем страницу
-        console.log("Точка Ж: Показываем страницу...");
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
         showPage('homePage');
