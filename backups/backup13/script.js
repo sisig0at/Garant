@@ -683,10 +683,7 @@
         var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
         var seller = sellers[Math.floor(Math.random() * sellers.length)];
         var buyer = buyers[Math.floor(Math.random() * buyers.length)];
-        // 85% — мелкие/средние (150–3000₽), 15% — крупные (5000–30000₽)
-        var amount = Math.random() < 0.85
-            ? Math.floor(Math.random() * 2851) + 150
-            : Math.floor(Math.random() * 25001) + 5000;
+        var amount = Math.floor(Math.random() * 3401) + 100;
         var item = items[Math.floor(Math.random() * items.length)];
         try {
             var res = await sb.from('deals').insert({
@@ -698,7 +695,7 @@
                 created_at: new Date().toISOString()
             });
             if (!res.error) {
-                console.log('[FakeDeal] Сгенерирована и отправлена в БД новая сделка на сумму ' + amount + '₽:', seller, '->', buyer);
+                console.log('[FakeDeal] Фейковая сделка создана:', seller, '->', buyer, amount + '₽');
             } else {
                 console.error('[FakeDeal] Ошибка вставки:', res.error);
             }
@@ -712,11 +709,7 @@
         function tick() {
             var delay = 120000 + Math.random() * 180000;
             setTimeout(async function() {
-                try {
-                    await generateFakeDeal();
-                } catch(e) {
-                    console.error('[FakeDeal] Ошибка в tick:', e);
-                }
+                await generateFakeDeal();
                 tick();
             }, delay);
         }
@@ -802,12 +795,6 @@
                 }
             }
         };
-        loginInp.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); handler(); }
-        });
-        passInp.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault(); handler(); }
-        });
         var switchHandler = function() {
             isLoginMode = !isLoginMode;
             if (isLoginMode) {
@@ -1590,40 +1577,5 @@
         console.log('[Init] Инициализация завершена');
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Enter key для чата поддержки
-        var chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    var msg = this.value.trim();
-                    if (!msg) return;
-                    var chatDiv = document.getElementById('chatMessages');
-                    chatDiv.innerHTML += '<div class="message message-user">' + escapeHtml(msg) + '</div>';
-                    chatDiv.scrollTop = chatDiv.scrollHeight;
-                    this.value = '';
-                    setTimeout(function() {
-                        chatDiv.innerHTML += '<div class="message message-bot">' + botReply(msg) + '</div>';
-                        chatDiv.scrollTop = chatDiv.scrollHeight;
-                    }, 500);
-                }
-            });
-        }
-        // Enter key для чата сделок (Shift+Enter — перенос строки)
-        var dealChatInput = document.getElementById('singleDealChatInput');
-        if (dealChatInput) {
-            dealChatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (currentDealId) {
-                        var text = this.value.trim();
-                        if (text) sendSingleDealMessage(currentDealId, text);
-                        this.value = '';
-                    }
-                }
-            });
-        }
-        initApp();
-    });
+    document.addEventListener('DOMContentLoaded', initApp);
 })();
