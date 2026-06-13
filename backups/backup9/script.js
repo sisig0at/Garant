@@ -4,6 +4,15 @@
     if (typeof supabase === 'undefined' || typeof SUPABASE_CONFIG === 'undefined') return;
     const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+    // ===== РАННЯЯ ПРОВЕРКА СЕССИИ (сразу при загрузке) =====
+    let __sessionEmail = null;
+    try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session && session.user && session.user.email) {
+            __sessionEmail = session.user.email.replace(/@vg\.local$/, '');
+        }
+    } catch(e) {}
+
     let currentUser = null;
     let users = [];
     let deals = [];
@@ -17,12 +26,16 @@
     let adminUserPage = 1;
     let adminUserTotalCount = 0;
     let currentDealId = null;
+    let recentDealsUnsubscribe = null;
+    let authInitialized = false;
 
     // ===== ГЛОБАЛЬНЫЙ СЛУШАТЕЛЬ АВТОРИЗАЦИИ =====
     sb.auth.onAuthStateChange(function(event, session) {
         if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            try { updateUI(); } catch(e) {}
+            if (authInitialized) {
+                currentUser = null;
+                try { updateUI(); } catch(e) {}
+            }
         } else if (session && session.user && session.user.email && users.length > 0) {
             var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
             var u = findUserByLogin(sessionLogin);
@@ -606,11 +619,12 @@
     }
 
     function setupRealtimeSubscriptions() {
-        // ---- Канал для ленты сделок ----
-        sb.channel('recent-deals')
+        try { if (recentDealsUnsubscribe) { sb.removeChannel(recentDealsUnsubscribe); } } catch(e) {}
+        try { if (window._chatChannel) { sb.removeChannel(window._chatChannel); } } catch(e) {}
+
+        recentDealsUnsubscribe = sb.channel('recent-deals')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'recent_deals' }, function(payload) {
                 var d = payload.new;
-                console.log('[Realtime] Новая сделка в ленте:', d);
                 var feedDiv = document.getElementById('liveDealsFeed');
                 if (!feedDiv) return;
                 var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
@@ -620,15 +634,11 @@
                     return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
                 }).join('');
             })
-            .subscribe(function(status) {
-                console.log('[Realtime] Статус канала recent-deals:', status);
-            });
+            .subscribe();
 
-        // ---- Канал для чата сделок ----
-        sb.channel('deal-messages')
+        window._chatChannel = sb.channel('deal-messages')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'deal_messages' }, function(payload) {
                 var msg = payload.new;
-                console.log('[Realtime] Новое сообщение чата:', msg);
                 if (currentDealId && msg.deal_id == currentDealId) {
                     if (!dealMessages[msg.deal_id]) dealMessages[msg.deal_id] = [];
                     var exists = dealMessages[msg.deal_id].some(function(m) { return m.id === msg.id; });
@@ -638,9 +648,7 @@
                     }
                 }
             })
-            .subscribe(function(status) {
-                console.log('[Realtime] Статус канала deal-messages:', status);
-            });
+            .subscribe();
     }
 
     function startLiveFeed() {
@@ -651,7 +659,7 @@
         loadRecentDeals();
     }
 
-    // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (каждые 2–5 мин) =====
+    // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (2–5 мин) =====
     async function generateFakeDeal() {
         var sellers = ['TradeMaster', 'CryptoKing', 'SkinVendor', 'GameSeller', 'DigitalTrader', 'QuickDeal', 'SafeTrade', 'ProSeller'];
         var buyers = ['NewUser', 'BuyerPro', 'Collector', 'TraderJoe', 'CryptoFan', 'GameBuyer', 'DigitalBuyer', 'SafeBuyer'];
@@ -661,33 +669,25 @@
         var amount = Math.floor(Math.random() * 3401) + 100;
         var item = items[Math.floor(Math.random() * items.length)];
         try {
-            var res = await sb.from('recent_deals').insert({
+            await sb.from('recent_deals').insert({
                 seller: seller,
                 buyer: buyer,
                 amount: amount,
                 item: item,
                 created_at: new Date().toISOString()
             });
-            if (!res.error) {
-                console.log('[FakeDeal] Фейковая сделка создана:', seller, '->', buyer, amount + '₽');
-            } else {
-                console.error('[FakeDeal] Ошибка вставки:', res.error);
-            }
-        } catch(e) {
-            console.error('[FakeDeal] Исключение:', e);
-        }
+        } catch(e) {}
     }
 
     function startFakeDealsTimer() {
-        console.log('[FakeDeal] Таймер фейковых сделок запущен');
-        function tick() {
+        function scheduleNext() {
             var delay = 120000 + Math.random() * 180000;
             setTimeout(async function() {
                 await generateFakeDeal();
-                tick();
+                scheduleNext();
             }, delay);
         }
-        tick();
+        scheduleNext();
     }
 
     function initFaq() {
@@ -1471,50 +1471,29 @@
         if (onlineSpan) onlineSpan.innerText = fakeOnline;
     }, 10000 + Math.random() * 10000);
 
-    // ===== БЛОКИРУЮЩАЯ ИНИЦИАЛИЗАЦИЯ =====
+    // ===== INIT =====
 
-    async function initApp() {
+    async function init() {
         document.body.style.visibility = 'hidden';
-
-        // 1. Сначала проверяем сессию — блокирует весь UI
-        console.log('[Session] Проверка сессии...');
-        const { data: { session }, error } = await sb.auth.getSession();
-        if (error) console.error('[Session] Ошибка getSession:', error);
-
-        // 2. Загружаем все данные из БД
-        console.log('[Init] Загрузка данных...');
         await loadAllData();
 
-        // 3. Восстанавливаем пользователя по сессии
-        if (session && session.user && session.user.email) {
-            var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
-            console.log('[Session] Сессия найдена:', session.user.id, sessionLogin);
-            var u = findUserByLogin(sessionLogin);
+        // Восстановление сессии при F5 / перезагрузке (из ранней проверки)
+        if (__sessionEmail) {
+            var u = findUserByLogin(__sessionEmail);
             if (u && !u.banned) {
                 currentUser = u;
-                console.log('[Session] Пользователь восстановлен:', currentUser.login);
-            } else {
-                console.log('[Session] Пользователь не найден или забанен');
             }
-        } else {
-            console.log('[Session] Сессия отсутствует — гость');
         }
 
-        // 4. Отрисовываем UI
+        authInitialized = true;
         updateUI();
         updateGlobalStats();
         renderReviews();
         renderDeals();
         await loadRecentDeals();
-
-        // 5. Подключаем Realtime каналы
-        console.log('[Realtime] Настройка подписок...');
         setupRealtimeSubscriptions();
-
-        // 6. Запускаем таймер фейковых сделок
         startFakeDealsTimer();
 
-        // 7. Показываем страницу
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
         showPage('homePage');
@@ -1528,9 +1507,7 @@
             document.body.style.visibility = 'visible';
             document.body.classList.add('loaded');
         }, 1500);
-
-        console.log('[Init] Инициализация завершена');
     }
 
-    initApp();
+    init();
 })();
