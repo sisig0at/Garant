@@ -594,10 +594,7 @@
         }
         if (pageId === 'dealsPage') renderDeals();
         if (pageId === 'profilePage') renderProfile();
-        if (pageId === 'adminPage') {
-            if (!currentUser || currentUser.role !== 'admin') { showPage('homePage'); return; }
-            adminUserPage = 1; renderAdminPanel();
-        }
+        if (pageId === 'adminPage' && currentUser && currentUser.role === 'admin') { adminUserPage = 1; renderAdminPanel(); }
         if (pageId === 'reviewsPage') renderReviews();
         if (pageId === 'homePage') {
             setTimeout(initFaq, 100);
@@ -1109,77 +1106,69 @@
             return;
         }
 
-        // Admin (только для администраторов)
-        if (currentUser && currentUser.role === 'admin') {
-            if (target.closest('#adminAddBalance')) { handleAdminAddBalance(); return; }
-            if (target.closest('#adminSetBalance')) { handleAdminSetBalance(); return; }
-            if (target.closest('#adminPromote')) { handleAdminPromote(); return; }
-            if (target.closest('#adminBan')) { handleAdminBan(); return; }
-            if (target.closest('#setOnline')) { handleSetOnline(); return; }
-            if (target.closest('#addTurnover')) { handleAddTurnover(); return; }
-            if (target.closest('#setRatingBtn')) { handleSetRating(); return; }
-            if (target.closest('#setCompletedBtn')) { handleSetCompleted(); return; }
-            if (target.closest('#sendBroadcast')) { handleSendBroadcast(); return; }
+        // Admin
+        if (target.closest('#adminAddBalance')) { handleAdminAddBalance(); return; }
+        if (target.closest('#adminSetBalance')) { handleAdminSetBalance(); return; }
+        if (target.closest('#adminPromote')) { handleAdminPromote(); return; }
+        if (target.closest('#adminBan')) { handleAdminBan(); return; }
+        if (target.closest('#setOnline')) { handleSetOnline(); return; }
+        if (target.closest('#addTurnover')) { handleAddTurnover(); return; }
+        if (target.closest('#setRatingBtn')) { handleSetRating(); return; }
+        if (target.closest('#setCompletedBtn')) { handleSetCompleted(); return; }
+        if (target.closest('#sendBroadcast')) { handleSendBroadcast(); return; }
 
-            var banBtn = target.closest('.banAdmin');
-            if (banBtn) {
-                var ulogin = banBtn.dataset.login;
-                var u = users.find(function(x) { return x.login === ulogin; });
-                if (u && u.id) {
-                    u.banned = !u.banned;
-                    upsertUser(u).then(function(s) {
-                        if (currentUser && currentUser.login === u.login && u.banned) logout();
+        var banBtn = target.closest('.banAdmin');
+        if (banBtn) {
+            var ulogin = banBtn.dataset.login;
+            var u = users.find(function(x) { return x.login === ulogin; });
+            if (u && u.id) {
+                u.banned = !u.banned;
+                upsertUser(u).then(function(s) {
+                    if (currentUser && currentUser.login === u.login && u.banned) logout();
+                    renderAdminPanel();
+                    showToast(u.login + ' ' + (u.banned ? 'забанен' : 'разбанен'));
+                });
+            }
+            return;
+        }
+
+        var adminStatusBtn = target.closest('.adminChangeStatus');
+        if (adminStatusBtn) {
+            var did = parseInt(adminStatusBtn.dataset.id);
+            var dd = deals.find(function(x) { return x.id === did; });
+            if (dd) {
+                var ns = prompt('Статус (waiting_payment, escroy, completed, disputed)', dd.status);
+                if (ns && ['waiting_payment', 'escroy', 'completed', 'disputed'].includes(ns)) {
+                    updateDeal(did, { status: ns }).then(function() {
+                        renderDeals();
                         renderAdminPanel();
-                        showToast(u.login + ' ' + (u.banned ? 'забанен' : 'разбанен'));
+                        showToast('Статус #' + did + ' изменён');
                     });
                 }
-                return;
             }
+            return;
+        }
 
-            var adminStatusBtn = target.closest('.adminChangeStatus');
-            if (adminStatusBtn) {
-                var did = parseInt(adminStatusBtn.dataset.id);
-                var dd = deals.find(function(x) { return x.id === did; });
-                if (dd) {
-                    var ns = prompt('Статус (waiting_payment, escroy, completed, disputed)', dd.status);
-                    if (ns && ['waiting_payment', 'escroy', 'completed', 'disputed'].includes(ns)) {
-                        updateDeal(did, { status: ns }).then(function() {
-                            renderDeals();
-                            renderAdminPanel();
-                            showToast('Статус #' + did + ' изменён');
-                        });
-                    }
-                }
-                return;
-            }
+        var adminDelBtn = target.closest('.adminDeleteDeal');
+        if (adminDelBtn) {
+            var delId = parseInt(adminDelBtn.dataset.id);
+            deleteDeal(delId).then(function() {
+                renderDeals();
+                renderAdminPanel();
+                showToast('Сделка #' + delId + ' удалена');
+            });
+            return;
+        }
 
-            var adminDelBtn = target.closest('.adminDeleteDeal');
-            if (adminDelBtn) {
-                var delId = parseInt(adminDelBtn.dataset.id);
-                deleteDeal(delId).then(function() {
-                    renderDeals();
-                    renderAdminPanel();
-                    showToast('Сделка #' + delId + ' удалена');
-                });
-                return;
+        // Admin pagination
+        var pageBtn = target.closest('.admin-page-btn');
+        if (pageBtn) {
+            var newPage = parseInt(pageBtn.dataset.page);
+            if (newPage && newPage !== adminUserPage) {
+                adminUserPage = newPage;
+                renderAdminPanel();
             }
-
-            // Admin pagination
-            var pageBtn = target.closest('.admin-page-btn');
-            if (pageBtn) {
-                var newPage = parseInt(pageBtn.dataset.page);
-                if (newPage && newPage !== adminUserPage) {
-                    adminUserPage = newPage;
-                    renderAdminPanel();
-                }
-                return;
-            }
-
-            // Reset DB (admin)
-            if (target.closest('#resetDB')) {
-                if (confirm('Сбросить все данные?')) resetAllData();
-                return;
-            }
+            return;
         }
 
         // Guest register button
@@ -1256,17 +1245,6 @@
             await upsertUser(seller);
         }
         await updateDeal(deal.id, { status: 'completed', created_at: new Date().toISOString() });
-
-        // Прямое обновление ленты последних сделок (дублирует Realtime для надёжности)
-        var feedDiv = document.getElementById('liveDealsFeed');
-        if (feedDiv) {
-            var entry = escapeHtml(deal.seller) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(deal.buyer) + ' — ' + new Date().toLocaleTimeString();
-            lastDealsFeedArray.unshift(entry);
-            if (lastDealsFeedArray.length > 6) lastDealsFeedArray.pop();
-            feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-                return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
-            }).join('');
-        }
 
         var sysMsg = { deal_id: deal.id, sender: 'Система', text: 'Покупатель подтвердил получение товара. Деньги переведены продавцу.', timestamp: new Date().toLocaleString(), system: true };
         await insertDealMessage(deal.id, sysMsg);
@@ -1398,7 +1376,6 @@
     }
 
     async function handleAdminAddBalance() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var login = document.getElementById('adminLogin').value.trim();
         var amt = parseInt(document.getElementById('adminAmount').value);
         var u = users.find(function(x) { return x.login === login; });
@@ -1419,7 +1396,6 @@
     }
 
     async function handleAdminSetBalance() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var login = document.getElementById('adminLogin').value.trim();
         var amt = parseInt(document.getElementById('adminAmount').value);
         var u = users.find(function(x) { return x.login === login; });
@@ -1436,7 +1412,6 @@
     }
 
     async function handleAdminPromote() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var login = document.getElementById('adminLogin').value.trim();
         var u = users.find(function(x) { return x.login === login; });
         if (u && u.id) {
@@ -1452,7 +1427,6 @@
     }
 
     async function handleAdminBan() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var login = document.getElementById('adminLogin').value.trim();
         var u = users.find(function(x) { return x.login === login; });
         if (u && u.id) {
@@ -1467,13 +1441,11 @@
     }
 
     function handleSetOnline() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var val = parseInt(document.getElementById('fakeOnlineVal').value);
         if (!isNaN(val) && val > 0) { fakeOnline = val; updateGlobalStats(); showToast('Онлайн: ' + fakeOnline); }
     }
 
     async function handleAddTurnover() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var addVal = parseInt(document.getElementById('addTurnoverVal').value);
         if (!isNaN(addVal) && addVal > 0) {
             await updateSystemStats({
@@ -1485,7 +1457,6 @@
     }
 
     function handleSetRating() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var newRating = parseFloat(document.getElementById('setRatingVal').value);
         if (!isNaN(newRating) && newRating >= 0 && newRating <= 5) {
             var ratingSpan = document.getElementById('ratingValue');
@@ -1495,7 +1466,6 @@
     }
 
     async function handleSetCompleted() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var newCompleted = parseInt(document.getElementById('setCompletedVal').value);
         if (!isNaN(newCompleted) && newCompleted >= 0) {
             await updateSystemStats({ total_deals: newCompleted });
@@ -1505,13 +1475,11 @@
     }
 
     function handleSendBroadcast() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         var msg = document.getElementById('broadcastMsg').value.trim();
         if (msg) showToast('📢 ' + msg);
     }
 
     async function resetAllData() {
-        if (!currentUser || currentUser.role !== 'admin') return;
         for (var i = 0; i < users.length; i++) {
             await sb.from('users').delete().eq('id', users[i].id);
         }
