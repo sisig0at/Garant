@@ -1,0 +1,4 @@
+﻿backups/
+API.txt
+*.env
+.env
