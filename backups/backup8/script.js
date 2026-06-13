@@ -4,15 +4,6 @@
     if (typeof supabase === 'undefined' || typeof SUPABASE_CONFIG === 'undefined') return;
     const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-    // ===== РАННЯЯ ПРОВЕРКА СЕССИИ (сразу при загрузке) =====
-    let __sessionEmail = null;
-    try {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session && session.user && session.user.email) {
-            __sessionEmail = session.user.email.replace(/@vg\.local$/, '');
-        }
-    } catch(e) {}
-
     let currentUser = null;
     let users = [];
     let deals = [];
@@ -659,37 +650,6 @@
         loadRecentDeals();
     }
 
-    // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (2–5 мин) =====
-    async function generateFakeDeal() {
-        var sellers = ['TradeMaster', 'CryptoKing', 'SkinVendor', 'GameSeller', 'DigitalTrader', 'QuickDeal', 'SafeTrade', 'ProSeller'];
-        var buyers = ['NewUser', 'BuyerPro', 'Collector', 'TraderJoe', 'CryptoFan', 'GameBuyer', 'DigitalBuyer', 'SafeBuyer'];
-        var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
-        var seller = sellers[Math.floor(Math.random() * sellers.length)];
-        var buyer = buyers[Math.floor(Math.random() * buyers.length)];
-        var amount = Math.floor(Math.random() * 3401) + 100;
-        var item = items[Math.floor(Math.random() * items.length)];
-        try {
-            await sb.from('recent_deals').insert({
-                seller: seller,
-                buyer: buyer,
-                amount: amount,
-                item: item,
-                created_at: new Date().toISOString()
-            });
-        } catch(e) {}
-    }
-
-    function startFakeDealsTimer() {
-        function scheduleNext() {
-            var delay = 120000 + Math.random() * 180000;
-            setTimeout(async function() {
-                await generateFakeDeal();
-                scheduleNext();
-            }, delay);
-        }
-        scheduleNext();
-    }
-
     function initFaq() {
         document.querySelectorAll('.faq-item').forEach(function(item) {
             var q = item.querySelector('.faq-question');
@@ -704,8 +664,7 @@
                         item.classList.remove('active');
                     } else {
                         item.classList.add('active');
-                        a.style.padding = '18px 24px';
-                        a.style.maxHeight = (a.scrollHeight + 36) + 'px';
+                        a.style.maxHeight = a.scrollHeight + 'px';
                     }
                 };
                 item._faqHandler = handler;
@@ -1477,13 +1436,17 @@
         document.body.style.visibility = 'hidden';
         await loadAllData();
 
-        // Восстановление сессии при F5 / перезагрузке (из ранней проверки)
-        if (__sessionEmail) {
-            var u = findUserByLogin(__sessionEmail);
-            if (u && !u.banned) {
-                currentUser = u;
+        // Восстановление сессии при F5 / перезагрузке
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session && session.user && session.user.email) {
+                var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
+                var u = findUserByLogin(sessionLogin);
+                if (u && !u.banned) {
+                    currentUser = u;
+                }
             }
-        }
+        } catch(e) {}
 
         authInitialized = true;
         updateUI();
@@ -1492,7 +1455,6 @@
         renderDeals();
         await loadRecentDeals();
         setupRealtimeSubscriptions();
-        startFakeDealsTimer();
 
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
