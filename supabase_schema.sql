@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS public.recent_deals (
 );
 
 -- ========== ВКЛЮЧЕНИЕ REALTIME ДЛЯ ТАБЛИЦ ==========
+ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deal_messages;
 

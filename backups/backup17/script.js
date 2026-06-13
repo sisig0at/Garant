@@ -630,39 +630,6 @@
     }
 
     function setupRealtimeSubscriptions() {
-        // ---- Канал для обновления баланса ----
-        if (currentUser) {
-            sb.channel('user-balance')
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users' }, function(payload) {
-                    var u = payload.new;
-                    if (u.login === currentUser.login) {
-                        currentUser.balance = u.balance;
-                        var idx = users.findIndex(function(x) { return x.login === u.login; });
-                        if (idx !== -1) users[idx].balance = u.balance;
-                        updateUI();
-                        console.log('[Realtime] Баланс обновлён:', u.balance + '₽');
-                    }
-                })
-                .subscribe(function(status) {
-                    console.log('[Realtime] Статус канала user-balance:', status);
-                });
-        }
-
-        // ---- Канал для обновления статуса открытой сделки ----
-        sb.channel('deal-status')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'deals' }, function(payload) {
-                var d = payload.new;
-                if (currentDealId && d.id == currentDealId) {
-                    var idx = deals.findIndex(function(x) { return x.id === d.id; });
-                    if (idx !== -1) deals[idx] = d;
-                    loadSingleDealPage(d.id);
-                    console.log('[Realtime] Статус сделки #' + d.id + ' обновлён:', d.status);
-                }
-            })
-            .subscribe(function(status) {
-                console.log('[Realtime] Статус канала deal-status:', status);
-            });
-
         // ---- Канал для ленты сделок ----
         sb.channel('deals-feed')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
