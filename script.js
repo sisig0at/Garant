@@ -23,6 +23,7 @@
     let adminUserPage = 1;
     let adminUserTotalCount = 0;
     let currentDealId = null;
+    window.isAdmin = false;
 
     // ===== ГЛОБАЛЬНЫЙ СЛУШАТЕЛЬ АВТОРИЗАЦИИ =====
     sb.auth.onAuthStateChange(function(event, session) {
@@ -34,10 +35,12 @@
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
-                try { updateUI(); } catch(e) {}
-                if (currentDealId) {
-                    try { loadSingleDealPage(currentDealId); } catch(e) {}
-                }
+                verifyAdminRole().then(function() {
+                    try { updateUI(); } catch(e) {}
+                    if (currentDealId) {
+                        try { loadSingleDealPage(currentDealId); } catch(e) {}
+                    }
+                });
             }
         }
     });
@@ -82,6 +85,26 @@
 
     function findUserByLogin(login) {
         return users.find(function(x) { return x.login === login; });
+    }
+
+    async function verifyAdminRole() {
+        if (!currentUser || !currentUser.id) {
+            window.isAdmin = false;
+            return false;
+        }
+        try {
+            const { data, error } = await sb.from('users').select('role').eq('id', currentUser.id).single();
+            if (!error && data && data.role === 'admin') {
+                currentUser.role = 'admin';
+                window.isAdmin = true;
+                return true;
+            }
+        } catch(e) {
+            console.error('[AdminCheck] Ошибка верификации роли:', e);
+        }
+        currentUser.role = 'user';
+        window.isAdmin = false;
+        return false;
     }
 
     // ===== SUPABASE DATA FUNCTIONS =====
@@ -275,7 +298,7 @@
             if (el) el.style.display = isGuest ? 'none' : 'inline-block';
         });
         let adminLink = document.getElementById('navAdmin');
-        if (adminLink) adminLink.style.display = (currentUser && currentUser.role === 'admin') ? 'inline-block' : 'none';
+        if (adminLink) adminLink.style.display = (currentUser && (currentUser.role === 'admin' || window.isAdmin)) ? 'inline-block' : 'none';
         let guestMsg = document.getElementById('guestMessage');
         if (guestMsg) guestMsg.style.display = isGuest ? 'block' : 'none';
         if (currentUser) renderProfile();
@@ -365,7 +388,11 @@
     }
 
     async function renderAdminPanel() {
-        if (!currentUser || currentUser.role !== 'admin') return;
+        if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
+            var ap = document.getElementById('adminPage');
+            if (ap) ap.classList.add('hidden', 'hidden-page');
+            return;
+        }
         document.getElementById('adminStats').innerHTML =
             '<div class="stat-card">Пользователей: ' + users.length + '</div>' +
             '<div class="stat-card">Сделок: ' + deals.length + '</div>';
@@ -426,6 +453,11 @@
     }
 
     async function loadSingleDealPage(dealId) {
+        // Принудительно скрываем админ-панель для не-админов при каждом рендере сделки
+        if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
+            var adminPanel = document.getElementById('adminPage');
+            if (adminPanel) { adminPanel.classList.add('hidden', 'hidden-page'); }
+        }
         let deal = deals.find(function(d) { return d.id == dealId; });
         if (!deal) {
             document.getElementById('singleDealTitle').innerHTML = 'Сделка не найдена';
@@ -579,6 +611,17 @@
     // ===== PAGE NAVIGATION =====
 
     function showPage(pageId) {
+        // СИНХРОННАЯ ЗАЩИТА: если не админ, перенаправляем на главную
+        if (pageId === 'adminPage') {
+            if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
+                pageId = 'homePage';
+            }
+        }
+        // Принудительно скрываем админку для не-админов
+        if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
+            var adminPanel = document.getElementById('adminPage');
+            if (adminPanel) { adminPanel.classList.add('hidden', 'hidden-page'); }
+        }
         ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].forEach(function(p) {
             var el = document.getElementById(p);
             if (el) el.classList.add('hidden-page');
@@ -595,8 +638,17 @@
         if (pageId === 'dealsPage') renderDeals();
         if (pageId === 'profilePage') renderProfile();
         if (pageId === 'adminPage') {
-            if (!currentUser || currentUser.role !== 'admin') { showPage('homePage'); return; }
-            adminUserPage = 1; renderAdminPanel();
+            // АСИНХРОННАЯ ЗАЩИТА: верификация роли напрямую из БД Supabase
+            verifyAdminRole().then(function(isAdmin) {
+                if (!isAdmin) {
+                    var ap = document.getElementById('adminPage');
+                    if (ap) ap.classList.add('hidden', 'hidden-page');
+                    showPage('homePage');
+                    return;
+                }
+                adminUserPage = 1; renderAdminPanel();
+            });
+            return;
         }
         if (pageId === 'reviewsPage') renderReviews();
         if (pageId === 'homePage') {
@@ -640,10 +692,12 @@
                     var u = payload.new;
                     if (u.login === currentUser.login) {
                         currentUser.balance = u.balance;
+                        currentUser.role = u.role;
+                        window.isAdmin = (u.role === 'admin');
                         var idx = users.findIndex(function(x) { return x.login === u.login; });
-                        if (idx !== -1) users[idx].balance = u.balance;
+                        if (idx !== -1) { users[idx].balance = u.balance; users[idx].role = u.role; }
                         updateUI();
-                        console.log('[Realtime] Баланс обновлён:', u.balance + '₽');
+                        console.log('[Realtime] Баланс обновлён:', u.balance + '₽, роль:', u.role);
                     }
                 })
                 .subscribe(function(status) {
@@ -886,6 +940,13 @@
             var page = navLink.dataset.page;
             if (page === 'help') { showPage('helpPage'); return; }
             if (!currentUser && page !== 'home') { openAuthModal(); return; }
+            // Дополнительная защита: если кто-то пытается перейти в админку не будучи админом
+            if (page === 'admin' && (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin))) {
+                if (!currentUser) { openAuthModal(); return; }
+                showToast('Доступ запрещён');
+                showPage('homePage');
+                return;
+            }
             showPage({ home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' }[page]);
             return;
         }
@@ -1110,7 +1171,7 @@
         }
 
         // Admin (только для администраторов)
-        if (currentUser && currentUser.role === 'admin') {
+        if (currentUser && (currentUser.role === 'admin' || window.isAdmin)) {
             if (target.closest('#adminAddBalance')) { handleAdminAddBalance(); return; }
             if (target.closest('#adminSetBalance')) { handleAdminSetBalance(); return; }
             if (target.closest('#adminPromote')) { handleAdminPromote(); return; }
@@ -1595,7 +1656,8 @@
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
-                console.log('[Session] Пользователь восстановлен:', currentUser.login);
+                await verifyAdminRole();
+                console.log('[Session] Пользователь восстановлен:', currentUser.login, 'admin:', window.isAdmin);
             } else {
                 console.log("Точка Г-ERROR: Пользователь не найден или забанен, включаем гостевой режим.");
             }
@@ -1612,7 +1674,8 @@
                     var u = findUserByLogin(parsed.login);
                     if (u && !u.banned) {
                         currentUser = u;
-                        console.log("Точка Г-FALLBACK: Пользователь восстановлен из localStorage:", currentUser.login);
+                        await verifyAdminRole();
+                        console.log("Точка Г-FALLBACK: Пользователь восстановлен из localStorage:", currentUser.login, 'admin:', window.isAdmin);
                     }
                 } catch(e) {}
             }
