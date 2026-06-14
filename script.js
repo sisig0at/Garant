@@ -1227,11 +1227,9 @@
     // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (каждые 2–5 мин) =====
     async function generateFakeDeal() {
         if (!currentUser || currentUser.role !== 'admin') return;
-        var sellers = ['TradeMaster', 'CryptoKing', 'SkinVendor', 'GameSeller', 'DigitalTrader', 'QuickDeal', 'SafeTrade', 'ProSeller'];
-        var buyers = ['NewUser', 'BuyerPro', 'Collector', 'TraderJoe', 'CryptoFan', 'GameBuyer', 'DigitalBuyer', 'SafeBuyer'];
         var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
-        var seller = sellers[Math.floor(Math.random() * sellers.length)];
-        var buyer = buyers[Math.floor(Math.random() * buyers.length)];
+        var seller = 'User#' + Math.floor(100000 + Math.random() * 900000);
+        var buyer = 'User#' + Math.floor(100000 + Math.random() * 900000);
         // 85% — мелкие/средние (150–3000₽), 15% — крупные (5000–30000₽)
         var amount = Math.random() < 0.85
             ? Math.floor(Math.random() * 2851) + 150
