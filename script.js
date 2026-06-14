@@ -518,8 +518,9 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' <span style="color:#888;font-weight:normal;">(#' + ticket.id + ')</span>';
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
+            var displayName = msg.sender_role === 'admin' ? 'Поддержка' : (msg.sender_role === 'system' ? 'Система' : msg.sender_id);
             var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-bot' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
-            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender_id) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(displayName) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
         container.scrollTop = container.scrollHeight;
         area.style.display = 'block';
@@ -565,8 +566,9 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticketUserLogin);
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
+            var displayName = msg.sender_role === 'system' ? 'Система' : (msg.sender_role === 'user' ? ((users.find(function(u) { return String(u.id) === String(msg.sender_id); }) || {}).login || '#' + msg.sender_id) : (currentUser ? currentUser.login : 'Поддержка'));
             var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-user' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
-            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender_id) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(displayName) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
         container.scrollTop = container.scrollHeight;
         area.style.display = 'block';
@@ -1643,7 +1645,8 @@
             renderUserTickets();
             userCurrentTicketId = saved.id;
             renderUserTickets();
-            renderUserTicketChat(saved.id);
+            var firstMsg = { ticket_id: saved.id, sender_id: String(currentUser.id), sender_role: 'user', message: message };
+            await insertTicketMessage(saved.id, firstMsg);
             var sysMsg = { ticket_id: saved.id, sender_id: 'Система', sender_role: 'system', message: 'Обращение создано. Ожидайте ответа администратора.' };
             await insertTicketMessage(saved.id, sysMsg);
             renderUserTicketChat(saved.id);
@@ -2199,6 +2202,26 @@
                         if (text) sendSingleDealMessage(currentDealId, text);
                         this.value = '';
                     }
+                }
+            });
+        }
+        // Enter key для чата поддержки (пользователь)
+        var userTicketInput = document.getElementById('userTicketChatInput');
+        if (userTicketInput) {
+            userTicketInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleUserTicketSend();
+                }
+            });
+        }
+        // Enter key для чата поддержки (админ)
+        var adminTicketInput = document.getElementById('adminTicketChatInput');
+        if (adminTicketInput) {
+            adminTicketInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAdminTicketSend();
                 }
             });
         }
