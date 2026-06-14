@@ -637,6 +637,50 @@
         }
     }
 
+    async function autoCleanSupportTickets() {
+        if (!currentUser || currentUser.role !== 'admin') return;
+        console.log('[AutoClean] Проверка закрытых тикетов (старше 24ч)...');
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { error } = await sb
+            .from('support_tickets')
+            .delete()
+            .eq('status', 'closed')
+            .lt('closed_at', oneDayAgo);
+        if (error) {
+            console.error('[AutoClean] Ошибка удаления старых тикетов:', error.message);
+        } else {
+            console.log('[AutoClean] Закрытые тикеты (старше 24ч) удалены');
+        }
+    }
+
+    async function autoCleanFakeDeals() {
+        if (!currentUser || currentUser.role !== 'admin') return;
+        console.log('[AutoClean] Проверка фейковых сделок (старше 1ч)...');
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { error } = await sb
+            .from('deals')
+            .delete()
+            .eq('is_fake', true)
+            .lt('created_at', oneHourAgo);
+        if (error) {
+            console.error('[AutoClean] Ошибка удаления старых фейков:', error.message);
+        } else {
+            console.log('[AutoClean] Фейковые сделки (старше 1ч) удалены');
+        }
+    }
+
+    function startAdminAutoClean() {
+        if (!currentUser || currentUser.role !== 'admin') return;
+        autoCleanSupportTickets();
+        autoCleanFakeDeals();
+        if (!window._adminCleanInterval) {
+            window._adminCleanInterval = setInterval(function() {
+                autoCleanSupportTickets();
+                autoCleanFakeDeals();
+            }, 10 * 60 * 1000);
+        }
+    }
+
     async function renderAdminPanel() {
         console.log("[AdminPanel] Рендер админ-панели. currentUser:", currentUser ? currentUser.login + " роль:" + currentUser.role : "null", "isAdmin:", window.isAdmin);
         if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
@@ -644,6 +688,7 @@
             if (ap) ap.classList.add('hidden-page');
             return;
         }
+        startAdminAutoClean();
         var countRes = await sb.from('deals').select('id', { count: 'exact', head: true }).eq('is_fake', false);
         var realDealsCount = countRes.count || 0;
         document.getElementById('adminStats').innerHTML =
@@ -1003,7 +1048,7 @@
             .select('*')
             .or('is_fake.eq.true,status.eq.completed')
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(5);
         if (error) {
             console.error("Ошибка загрузки стартовых сделок:", error.message);
             return;
@@ -1090,7 +1135,7 @@
                 if (!feedDiv) return;
                 var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
                 lastDealsFeedArray.unshift(entry);
-                if (lastDealsFeedArray.length > 10) lastDealsFeedArray.pop();
+                if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
                 feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
                     return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
                 }).join('');
@@ -1833,7 +1878,7 @@
         if (feedDiv) {
             var entry = escapeHtml(deal.seller) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(deal.buyer) + ' — ' + new Date().toLocaleTimeString();
             lastDealsFeedArray.unshift(entry);
-            if (lastDealsFeedArray.length > 6) lastDealsFeedArray.pop();
+            if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
                 return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
             }).join('');
