@@ -518,9 +518,8 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' <span style="color:#888;font-weight:normal;">(#' + ticket.id + ')</span>';
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
-            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : 'message-bot';
-            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender) + '</strong><br>' + escapeHtml(msg.text) +
-                '<br><span style="font-size:10px;color:#aaa;">' + (msg.timestamp || '') + '</span></div>';
+            var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-bot' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender_id) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
         container.scrollTop = container.scrollHeight;
         area.style.display = 'block';
@@ -566,9 +565,8 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticketUserLogin);
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
-            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : (msg.sender === 'Система' ? 'message-system' : 'message-bot');
-            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender) + '</strong><br>' + escapeHtml(msg.text) +
-                '<br><span style="font-size:10px;color:#aaa;">' + (msg.timestamp || '') + '</span></div>';
+            var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-user' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender_id) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
         container.scrollTop = container.scrollHeight;
         area.style.display = 'block';
@@ -1637,7 +1635,7 @@
             userCurrentTicketId = saved.id;
             renderUserTickets();
             renderUserTicketChat(saved.id);
-            var sysMsg = { ticket_id: saved.id, sender: 'Система', text: 'Обращение создано. Ожидайте ответа администратора.', timestamp: new Date().toLocaleString() };
+            var sysMsg = { ticket_id: saved.id, sender_id: 'Система', sender_role: 'system', message: 'Обращение создано. Ожидайте ответа администратора.' };
             await insertTicketMessage(saved.id, sysMsg);
             renderUserTicketChat(saved.id);
         }
@@ -1649,7 +1647,7 @@
         if (!ticket || ticket.status === 'closed') { showToast('Обращение закрыто'); return; }
         var text = document.getElementById('userTicketChatInput').value.trim();
         if (!text) return;
-        var msg = { ticket_id: userCurrentTicketId, sender: currentUser.login, text: text, timestamp: new Date().toLocaleString() };
+        var msg = { ticket_id: userCurrentTicketId, sender_id: String(currentUser.id), sender_role: 'user', message: text };
         await insertTicketMessage(userCurrentTicketId, msg);
         document.getElementById('userTicketChatInput').value = '';
         renderUserTicketChat(userCurrentTicketId);
@@ -1661,7 +1659,7 @@
         if (!ticket || ticket.status === 'closed') { showToast('Обращение закрыто'); return; }
         var text = document.getElementById('adminTicketChatInput').value.trim();
         if (!text) return;
-        var msg = { ticket_id: adminCurrentTicketId, sender: currentUser.login, text: text, timestamp: new Date().toLocaleString() };
+        var msg = { ticket_id: adminCurrentTicketId, sender_id: String(currentUser.id), sender_role: 'admin', message: text };
         await insertTicketMessage(adminCurrentTicketId, msg);
         document.getElementById('adminTicketChatInput').value = '';
         renderAdminTicketChat(adminCurrentTicketId);
@@ -1672,7 +1670,7 @@
         if (!confirm('Закрыть обращение?')) return;
         var now = new Date().toISOString();
         await updateTicket(adminCurrentTicketId, { status: 'closed', closed_at: now });
-        var sysMsg = { ticket_id: adminCurrentTicketId, sender: 'Система', text: 'Обращение закрыто администратором.', timestamp: new Date().toLocaleString() };
+        var sysMsg = { ticket_id: adminCurrentTicketId, sender_id: 'Система', sender_role: 'system', message: 'Обращение закрыто администратором.' };
         await insertTicketMessage(adminCurrentTicketId, sysMsg);
         renderAdminTicketChat(adminCurrentTicketId);
         renderAdminTickets();
