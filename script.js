@@ -11,6 +11,7 @@
     });
 
     let currentUser = null;
+    let authUserId = null;
     let users = [];
     let deals = [];
     let reviews = [];
@@ -627,8 +628,8 @@
 
         let dealsDiv = document.getElementById('adminDealsList');
         if (dealsDiv) {
-            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false).order('created_at', { ascending: false });
-            var adminDeals = (!dealsRes.error && dealsRes.data) ? dealsRes.data : [];
+            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false);
+            var adminDeals = (!dealsRes.error && dealsRes.data) ? dealsRes.data.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); }) : [];
             dealsDiv.innerHTML = adminDeals.map(function(d) {
                 return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
                     ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
@@ -901,15 +902,14 @@
             .from('deals')
             .select('*')
             .eq('is_fake', false)
-            .eq('status', 'completed')
-            .order('created_at', { ascending: false })
-            .limit(3);
+            .eq('status', 'completed');
         if (error) {
             console.error("Ошибка загрузки стартовых сделок:", error);
             return;
         }
-        console.log("Стартовые сделки загружены из БД (deals):", data);
-        renderRecentDealsList(data);
+        var sorted = (data || []).sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+        console.log("Стартовые сделки загружены из БД (deals):", sorted.slice(0, 3));
+        renderRecentDealsList(sorted.slice(0, 3));
     }
 
     function renderRecentDealsList(data) {
@@ -1325,21 +1325,6 @@
             return;
         }
 
-        // Chat support
-        if (target.closest('#sendChatBtn')) {
-            var msg = document.getElementById('chatInput').value.trim();
-            if (!msg) return;
-            var chatDiv = document.getElementById('chatMessages');
-            chatDiv.innerHTML += '<div class="message message-user">' + escapeHtml(msg) + '</div>';
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-            document.getElementById('chatInput').value = '';
-            setTimeout(function() {
-                chatDiv.innerHTML += '<div class="message message-bot">' + botReply(msg) + '</div>';
-                chatDiv.scrollTop = chatDiv.scrollHeight;
-            }, 500);
-            return;
-        }
-
         // FAQ buttons
         var faqBtn = target.closest('.faq-btn');
         if (faqBtn) {
@@ -1615,7 +1600,8 @@
         var message = document.getElementById('ticketMessage').value.trim();
         if (!subject || !message) { showToast('Заполните тему и сообщение'); return; }
         var ticket = {
-            user_id: currentUser.id,
+            user_id: authUserId || currentUser.id,
+            user_short_id: currentUser.short_id || null,
             subject: subject,
             message: message,
             status: 'open'
@@ -2074,6 +2060,7 @@
         if (session && session.user && session.user.email) {
             var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
             console.log("Сессия успешно восстановлена для:", session.user.id, "login:", sessionLogin);
+            authUserId = session.user.id;
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
@@ -2168,25 +2155,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Enter key для чата поддержки
-        var chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    var msg = this.value.trim();
-                    if (!msg) return;
-                    var chatDiv = document.getElementById('chatMessages');
-                    chatDiv.innerHTML += '<div class="message message-user">' + escapeHtml(msg) + '</div>';
-                    chatDiv.scrollTop = chatDiv.scrollHeight;
-                    this.value = '';
-                    setTimeout(function() {
-                        chatDiv.innerHTML += '<div class="message message-bot">' + botReply(msg) + '</div>';
-                        chatDiv.scrollTop = chatDiv.scrollHeight;
-                    }, 500);
-                }
-            });
-        }
         // Enter key для чата сделок (Shift+Enter — перенос строки)
         var dealChatInput = document.getElementById('singleDealChatInput');
         if (dealChatInput) {
