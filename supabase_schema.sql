@@ -90,10 +90,34 @@ CREATE TABLE IF NOT EXISTS public.recent_deals (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Тикеты поддержки
+CREATE TABLE IF NOT EXISTS public.support_tickets (
+    id BIGSERIAL PRIMARY KEY,
+    user_login TEXT NOT NULL,
+    user_short_id TEXT,
+    subject TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    closed_at TIMESTAMPTZ
+);
+
+-- Сообщения внутри тикетов поддержки
+CREATE TABLE IF NOT EXISTS public.ticket_messages (
+    id BIGSERIAL PRIMARY KEY,
+    ticket_id BIGINT NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
+    sender TEXT NOT NULL,
+    text TEXT NOT NULL,
+    timestamp TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ========== ВКЛЮЧЕНИЕ REALTIME ДЛЯ ТАБЛИЦ ==========
 ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deal_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.ticket_messages;
 
 -- ========== ОТКЛЮЧЕНИЕ RLS (управление доступом на стороне приложения) ==========
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
@@ -103,6 +127,8 @@ ALTER TABLE public.ratings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.achievements DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deal_messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_stats DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ticket_messages DISABLE ROW LEVEL SECURITY;
 
 -- ========== НАЧАЛЬНЫЕ ДАННЫЕ (SEED) ==========
 

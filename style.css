@@ -1106,6 +1106,18 @@ html, body {
     max-width: 100%;
 }
 
+.ticket-item { background: #0a0418; border-radius: 20px; padding: 14px 18px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #a855f7; transition: 0.2s; }
+.ticket-item:hover { background: #1f143f; }
+.ticket-item .ticket-subject { font-weight: bold; color: #d8b4fe; }
+.ticket-item .ticket-status { font-size: 12px; padding: 2px 10px; border-radius: 20px; }
+.ticket-item .ticket-status.open { background: #00cc66; color: #fff; }
+.ticket-item .ticket-status.closed { background: #666; color: #fff; }
+.ticket-item.active { border-left-color: #c084fc; background: #1f143f; }
+#userTicketChatArea, #adminTicketChatArea { margin-top: 15px; padding: 15px; background: rgba(10, 4, 24, 0.5); border-radius: 24px; }
+.light-theme .ticket-item { background: #f5f0ff; color: #333; border-left-color: #a855f7; }
+.light-theme .ticket-item:hover { background: #ede4ff; }
+.light-theme .ticket-item .ticket-subject { color: #7e22ce; }
+.light-theme #userTicketChatArea, .light-theme #adminTicketChatArea { background: rgba(245, 240, 255, 0.8); }
 /* Оптимизация анимаций — только transform/opacity для 60 FPS */
 .card, .stat-card, .feature-block, .deal-item, .premium-auth-btn, .message, .toast, .bank-btn, .crypto-btn, .achievement-badge, .theme-btn {
     will-change: transform;

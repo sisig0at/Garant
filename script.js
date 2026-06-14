@@ -24,6 +24,11 @@
     let adminUserTotalCount = 0;
     let currentDealId = null;
     window.isAdmin = false;
+    let supportTickets = [];
+    let supportTicketMessages = {};
+    let userCurrentTicketId = null;
+    let adminCurrentTicketId = null;
+    let openTicketCount = 0;
 
     // ===== ГЛОБАЛЬНЫЙ СЛУШАТЕЛЬ АВТОРИЗАЦИИ =====
     sb.auth.onAuthStateChange(function(event, session) {
@@ -126,6 +131,17 @@
         }
         let r5 = await sb.from('system_stats').select('*').eq('id', 1).single();
         if (!r5.error && r5.data) systemStats = r5.data;
+        let r6 = await sb.from('support_tickets').select('*').order('id', { ascending: false });
+        if (!r6.error && r6.data) supportTickets = r6.data;
+        let r7 = await sb.from('ticket_messages').select('*').order('id', { ascending: true });
+        if (!r7.error && r7.data) {
+            supportTicketMessages = {};
+            r7.data.forEach(function(m) {
+                if (!supportTicketMessages[m.ticket_id]) supportTicketMessages[m.ticket_id] = [];
+                supportTicketMessages[m.ticket_id].push(m);
+            });
+        }
+        recalcOpenTicketCount();
     }
 
     async function upsertUser(user) {
@@ -239,6 +255,65 @@
         if (!r.error && r.data && r.data[0]) {
             if (!dealMessages[dealId]) dealMessages[dealId] = [];
             dealMessages[dealId].push(r.data[0]);
+            return r.data[0];
+        }
+        return null;
+    }
+
+    // ===== SUPPORT TICKETS DATA FUNCTIONS =====
+
+    async function loadSupportTicketsFromDB() {
+        let r1 = await sb.from('support_tickets').select('*').order('id', { ascending: false });
+        if (!r1.error && r1.data) supportTickets = r1.data;
+        let r2 = await sb.from('ticket_messages').select('*').order('id', { ascending: true });
+        if (!r2.error && r2.data) {
+            supportTicketMessages = {};
+            r2.data.forEach(function(m) {
+                if (!supportTicketMessages[m.ticket_id]) supportTicketMessages[m.ticket_id] = [];
+                supportTicketMessages[m.ticket_id].push(m);
+            });
+        }
+        recalcOpenTicketCount();
+    }
+
+    function recalcOpenTicketCount() {
+        openTicketCount = supportTickets.filter(function(t) { return t.status === 'open'; }).length;
+    }
+
+    async function insertTicket(ticket) {
+        let r = await sb.from('support_tickets').insert(ticket).select();
+        if (!r.error && r.data && r.data[0]) {
+            supportTickets.unshift(r.data[0]);
+            recalcOpenTicketCount();
+            return r.data[0];
+        }
+        return null;
+    }
+
+    async function updateTicket(id, data) {
+        let r = await sb.from('support_tickets').update(data).eq('id', id).select();
+        if (!r.error && r.data && r.data[0]) {
+            let idx = supportTickets.findIndex(function(t) { return t.id === id; });
+            if (idx !== -1) supportTickets[idx] = r.data[0];
+            recalcOpenTicketCount();
+            return r.data[0];
+        }
+        return null;
+    }
+
+    async function deleteTicketAndMessages(ticketId) {
+        await sb.from('ticket_messages').delete().eq('ticket_id', ticketId);
+        await sb.from('support_tickets').delete().eq('id', ticketId);
+        supportTickets = supportTickets.filter(function(t) { return t.id !== ticketId; });
+        delete supportTicketMessages[ticketId];
+        recalcOpenTicketCount();
+    }
+
+    async function insertTicketMessage(ticketId, msg) {
+        let r = await sb.from('ticket_messages').insert(msg).select();
+        if (!r.error && r.data && r.data[0]) {
+            if (!supportTicketMessages[ticketId]) supportTicketMessages[ticketId] = [];
+            supportTicketMessages[ticketId].push(r.data[0]);
             return r.data[0];
         }
         return null;
@@ -387,6 +462,117 @@
         }).join('');
     }
 
+    // ===== SUPPORT TICKETS RENDER =====
+
+    function renderUserTickets() {
+        let container = document.getElementById('userTicketsList');
+        if (!container) return;
+        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_login === currentUser.login; }) : [];
+        if (myTickets.length === 0) {
+            container.innerHTML = '<p style="color:#888; text-align:center;">У вас нет обращений.</p>';
+            return;
+        }
+        container.innerHTML = myTickets.map(function(t) {
+            var statusClass = t.status === 'open' ? 'open' : 'closed';
+            var statusText = t.status === 'open' ? 'Открыто' : 'Закрыто';
+            var activeClass = userCurrentTicketId === t.id ? ' active' : '';
+            return '<div class="ticket-item' + activeClass + '" data-ticket-id="' + t.id + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span class="ticket-subject">' + escapeHtml(t.subject) + '</span>' +
+                '<span class="ticket-status ' + statusClass + '">' + statusText + '</span></div>' +
+                '<div style="font-size:12px;color:#888;margin-top:4px;">' + new Date(t.created_at).toLocaleString() + '</div></div>';
+        }).join('');
+    }
+
+    function renderUserTicketChat(ticketId) {
+        let area = document.getElementById('userTicketChatArea');
+        let header = document.getElementById('userTicketChatHeader');
+        let container = document.getElementById('userTicketChatMessages');
+        if (!area || !header || !container) return;
+        let ticket = supportTickets.find(function(t) { return t.id === ticketId; });
+        if (!ticket) { area.style.display = 'none'; return; }
+        header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' <span style="color:#888;font-weight:normal;">(#' + ticket.id + ')</span>';
+        let messages = supportTicketMessages[ticketId] || [];
+        container.innerHTML = messages.map(function(msg) {
+            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : 'message-bot';
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender) + '</strong><br>' + escapeHtml(msg.text) +
+                '<br><span style="font-size:10px;color:#aaa;">' + (msg.timestamp || '') + '</span></div>';
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+        area.style.display = 'block';
+        // Блокируем ввод, если тикет закрыт
+        let input = document.getElementById('userTicketChatInput');
+        let sendBtn = document.getElementById('userTicketChatSendBtn');
+        if (input && sendBtn) {
+            var disabled = ticket.status === 'closed';
+            input.disabled = disabled;
+            sendBtn.disabled = disabled;
+            input.placeholder = disabled ? 'Обращение закрыто' : 'Напишите сообщение...';
+        }
+    }
+
+    function renderAdminTickets() {
+        let container = document.getElementById('adminTicketsList');
+        if (!container) return;
+        let counter = document.getElementById('adminTicketCounter');
+        if (counter) {
+            counter.style.display = openTicketCount > 0 ? 'inline' : 'none';
+            counter.innerText = openTicketCount;
+        }
+        container.innerHTML = supportTickets.map(function(t) {
+            var statusClass = t.status === 'open' ? 'open' : 'closed';
+            var statusText = t.status === 'open' ? 'Открыто' : 'Закрыто';
+            var activeClass = adminCurrentTicketId === t.id ? ' active' : '';
+            return '<div class="ticket-item' + activeClass + '" data-admin-ticket-id="' + t.id + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span class="ticket-subject">' + escapeHtml(t.subject) + '</span>' +
+                '<span class="ticket-status ' + statusClass + '">' + statusText + '</span></div>' +
+                '<div style="font-size:12px;color:#888;margin-top:4px;">' + escapeHtml(t.user_login) + ' — ' + new Date(t.created_at).toLocaleString() + '</div></div>';
+        }).join('');
+    }
+
+    function renderAdminTicketChat(ticketId) {
+        let area = document.getElementById('adminTicketChatArea');
+        let header = document.getElementById('adminTicketChatHeader');
+        let container = document.getElementById('adminTicketChatMessages');
+        if (!area || !header || !container) return;
+        let ticket = supportTickets.find(function(t) { return t.id === ticketId; });
+        if (!ticket) { area.style.display = 'none'; return; }
+        header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticket.user_login);
+        let messages = supportTicketMessages[ticketId] || [];
+        container.innerHTML = messages.map(function(msg) {
+            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : (msg.sender === 'Система' ? 'message-system' : 'message-bot');
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender) + '</strong><br>' + escapeHtml(msg.text) +
+                '<br><span style="font-size:10px;color:#aaa;">' + (msg.timestamp || '') + '</span></div>';
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+        area.style.display = 'block';
+        // Показываем кнопку закрытия только для открытых тикетов
+        let closeBtn = document.getElementById('adminCloseTicketBtn');
+        if (closeBtn) closeBtn.style.display = ticket.status === 'open' ? 'inline-block' : 'none';
+        let input = document.getElementById('adminTicketChatInput');
+        if (input) input.disabled = ticket.status === 'closed';
+        let sendBtn = document.getElementById('adminTicketChatSendBtn');
+        if (sendBtn) sendBtn.disabled = ticket.status === 'closed';
+    }
+
+    async function autoDeleteOldClosedTickets() {
+        var now = new Date();
+        var toDelete = supportTickets.filter(function(t) {
+            if (t.status !== 'closed' || !t.closed_at) return false;
+            var closedTime = new Date(t.closed_at);
+            return (now - closedTime) > 86400000; // 24 hours
+        });
+        for (var i = 0; i < toDelete.length; i++) {
+            console.log('[AutoClean] Удаляем тикет #' + toDelete[i].id + ' (закрыт более 24ч назад)');
+            await deleteTicketAndMessages(toDelete[i].id);
+        }
+        if (toDelete.length > 0) {
+            renderUserTickets();
+            renderAdminTickets();
+        }
+    }
+
     async function renderAdminPanel() {
         console.log("[AdminPanel] Рендер админ-панели. currentUser:", currentUser ? currentUser.login + " роль:" + currentUser.role : "null", "isAdmin:", window.isAdmin);
         if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
@@ -439,6 +625,13 @@
                     ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
                     ' <button class="adminDeleteDeal" data-id="' + d.id + '">Удалить</button></div>';
             }).join('');
+        }
+        renderAdminTickets();
+        if (adminCurrentTicketId) {
+            renderAdminTicketChat(adminCurrentTicketId);
+        } else {
+            var adminChatArea = document.getElementById('adminTicketChatArea');
+            if (adminChatArea) adminChatArea.style.display = 'none';
         }
     }
 
@@ -681,6 +874,14 @@
         if (pageId === 'dealsPage') renderDeals();
         if (pageId === 'profilePage') renderProfile();
         if (pageId === 'reviewsPage') renderReviews();
+        if (pageId === 'supportPage') {
+            renderUserTickets();
+            if (userCurrentTicketId) {
+                renderUserTicketChat(userCurrentTicketId);
+            } else {
+                document.getElementById('userTicketChatArea').style.display = 'none';
+            }
+        }
         if (pageId === 'homePage') {
             setTimeout(initFaq, 100);
         }
@@ -786,6 +987,58 @@
             })
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала deal-messages:', status);
+            });
+
+        // ---- Канал для новых тикетов поддержки ----
+        sb.channel('support-tickets')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, function(payload) {
+                var t = payload.new;
+                if (payload.eventType === 'INSERT') {
+                    var exists = supportTickets.some(function(x) { return x.id === t.id; });
+                    if (!exists) {
+                        supportTickets.unshift(t);
+                        recalcOpenTicketCount();
+                    }
+                } else if (payload.eventType === 'UPDATE') {
+                    var idx = supportTickets.findIndex(function(x) { return x.id === t.id; });
+                    if (idx !== -1) supportTickets[idx] = t;
+                    recalcOpenTicketCount();
+                } else if (payload.eventType === 'DELETE') {
+                    supportTickets = supportTickets.filter(function(x) { return x.id !== payload.old.id; });
+                    delete supportTicketMessages[payload.old.id];
+                    recalcOpenTicketCount();
+                }
+                renderUserTickets();
+                renderAdminTickets();
+                if (adminCurrentTicketId && adminCurrentTicketId === t.id) {
+                    renderAdminTicketChat(t.id);
+                }
+                if (userCurrentTicketId && userCurrentTicketId === t.id) {
+                    renderUserTicketChat(t.id);
+                }
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала support-tickets:', status);
+            });
+
+        // ---- Канал для сообщений тикетов ----
+        sb.channel('ticket-messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages' }, function(payload) {
+                var msg = payload.new;
+                if (!supportTicketMessages[msg.ticket_id]) supportTicketMessages[msg.ticket_id] = [];
+                var exists = supportTicketMessages[msg.ticket_id].some(function(m) { return m.id === msg.id; });
+                if (!exists) {
+                    supportTicketMessages[msg.ticket_id].push(msg);
+                    if (adminCurrentTicketId === msg.ticket_id) {
+                        renderAdminTicketChat(msg.ticket_id);
+                    }
+                    if (userCurrentTicketId === msg.ticket_id) {
+                        renderUserTicketChat(msg.ticket_id);
+                    }
+                }
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала ticket-messages:', status);
             });
     }
 
@@ -1090,15 +1343,41 @@
             return;
         }
 
-        // Contact support
+        // Contact support — открыть модалку создания тикета
         if (target.closest('#contactSupportBtn')) {
-            showToast('Оператор свяжется с вами в чате');
-            var chatDiv3 = document.getElementById('chatMessages');
-            if (chatDiv3) {
-                setTimeout(function() {
-                    chatDiv3.innerHTML += '<div class="message message-support">Оператор: Здравствуйте! Чем помочь?</div>';
-                    chatDiv3.scrollTop = chatDiv3.scrollHeight;
-                }, 1000);
+            if (!currentUser) { showToast('Войдите'); return; }
+            document.getElementById('ticketSubject').value = '';
+            document.getElementById('ticketMessage').value = '';
+            document.getElementById('ticketModal').style.display = 'flex';
+            return;
+        }
+
+        // Ticket modal: submit
+        if (target.closest('#ticketSubmitBtn')) {
+            handleCreateTicket();
+            return;
+        }
+        if (target.closest('#closeTicketModal')) {
+            document.getElementById('ticketModal').style.display = 'none';
+            return;
+        }
+
+        // Ticket chat: user side
+        if (target.closest('#userTicketChatSendBtn')) {
+            handleUserTicketSend();
+            return;
+        }
+
+        // Click ticket in user list
+        var ticketItem = target.closest('.ticket-item[data-ticket-id]');
+        if (ticketItem) {
+            var tid = parseInt(ticketItem.dataset.ticketId);
+            userCurrentTicketId = (userCurrentTicketId === tid) ? null : tid;
+            renderUserTickets();
+            if (userCurrentTicketId) {
+                renderUserTicketChat(userCurrentTicketId);
+            } else {
+                document.getElementById('userTicketChatArea').style.display = 'none';
             }
             return;
         }
@@ -1276,6 +1555,32 @@
                 if (confirm('Сбросить все данные?')) resetAllData();
                 return;
             }
+
+            // Admin ticket chat: send
+            if (target.closest('#adminTicketChatSendBtn')) {
+                handleAdminTicketSend();
+                return;
+            }
+
+            // Admin ticket chat: close
+            if (target.closest('#adminCloseTicketBtn')) {
+                handleAdminCloseTicket();
+                return;
+            }
+
+            // Click ticket in admin list
+            var adminTicketItem = target.closest('.ticket-item[data-admin-ticket-id]');
+            if (adminTicketItem) {
+                var atid = parseInt(adminTicketItem.dataset.adminTicketId);
+                adminCurrentTicketId = (adminCurrentTicketId === atid) ? null : atid;
+                renderAdminTickets();
+                if (adminCurrentTicketId) {
+                    renderAdminTicketChat(adminCurrentTicketId);
+                } else {
+                    document.getElementById('adminTicketChatArea').style.display = 'none';
+                }
+                return;
+            }
         }
 
         // Guest register button
@@ -1291,6 +1596,75 @@
         }
 
     });
+
+    // ===== TICKET HANDLERS =====
+
+    async function handleCreateTicket() {
+        if (!currentUser) { showToast('Войдите'); return; }
+        var subject = document.getElementById('ticketSubject').value.trim();
+        var message = document.getElementById('ticketMessage').value.trim();
+        if (!subject || !message) { showToast('Заполните тему и сообщение'); return; }
+        var ticket = {
+            user_login: currentUser.login,
+            user_short_id: currentUser.short_id || null,
+            subject: subject,
+            message: message,
+            status: 'open'
+        };
+        var saved = await insertTicket(ticket);
+        if (saved) {
+            document.getElementById('ticketModal').style.display = 'none';
+            showToast('Обращение #' + saved.id + ' создано');
+            renderUserTickets();
+            // При создании тикета сразу открываем его чат
+            userCurrentTicketId = saved.id;
+            renderUserTickets();
+            renderUserTicketChat(saved.id);
+            // Автоматическое системное сообщение
+            var sysMsg = { ticket_id: saved.id, sender: 'Система', text: 'Обращение создано. Ожидайте ответа администратора.', timestamp: new Date().toLocaleString() };
+            await insertTicketMessage(saved.id, sysMsg);
+            renderUserTicketChat(saved.id);
+        } else {
+            showToast('Ошибка создания обращения');
+        }
+    }
+
+    async function handleUserTicketSend() {
+        if (!currentUser || !userCurrentTicketId) return;
+        var ticket = supportTickets.find(function(t) { return t.id === userCurrentTicketId; });
+        if (!ticket || ticket.status === 'closed') { showToast('Обращение закрыто'); return; }
+        var text = document.getElementById('userTicketChatInput').value.trim();
+        if (!text) return;
+        var msg = { ticket_id: userCurrentTicketId, sender: currentUser.login, text: text, timestamp: new Date().toLocaleString() };
+        await insertTicketMessage(userCurrentTicketId, msg);
+        document.getElementById('userTicketChatInput').value = '';
+        renderUserTicketChat(userCurrentTicketId);
+    }
+
+    async function handleAdminTicketSend() {
+        if (!currentUser || !adminCurrentTicketId) return;
+        var ticket = supportTickets.find(function(t) { return t.id === adminCurrentTicketId; });
+        if (!ticket || ticket.status === 'closed') { showToast('Обращение закрыто'); return; }
+        var text = document.getElementById('adminTicketChatInput').value.trim();
+        if (!text) return;
+        var msg = { ticket_id: adminCurrentTicketId, sender: currentUser.login, text: text, timestamp: new Date().toLocaleString() };
+        await insertTicketMessage(adminCurrentTicketId, msg);
+        document.getElementById('adminTicketChatInput').value = '';
+        renderAdminTicketChat(adminCurrentTicketId);
+    }
+
+    async function handleAdminCloseTicket() {
+        if (!currentUser || !adminCurrentTicketId) return;
+        if (!confirm('Закрыть обращение?')) return;
+        var now = new Date().toISOString();
+        await updateTicket(adminCurrentTicketId, { status: 'closed', closed_at: now });
+        var sysMsg = { ticket_id: adminCurrentTicketId, sender: 'Система', text: 'Обращение закрыто администратором.', timestamp: new Date().toLocaleString() };
+        await insertTicketMessage(adminCurrentTicketId, sysMsg);
+        renderAdminTicketChat(adminCurrentTicketId);
+        renderAdminTickets();
+        renderUserTickets();
+        showToast('Обращение #' + adminCurrentTicketId + ' закрыто');
+    }
 
     // ===== HANDLERS =====
 
@@ -1736,6 +2110,9 @@
 
         // 7. Запускаем таймер фейковых сделок
         startFakeDealsTimer();
+
+        // 7.5 Авто-удаление старых закрытых тикетов
+        await autoDeleteOldClosedTickets();
 
         // 8. Показываем страницу (восстанавливаем из URL-хэша при F5)
         console.log("Точка Ж: Показываем страницу...");

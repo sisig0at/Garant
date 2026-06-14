@@ -135,14 +135,23 @@
                     <button class="faq-btn" data-question="статус сделки">Статус сделки</button>
                     <button class="faq-btn" data-question="уровень доверия">Уровень доверия</button>
                 </div>
-                <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-                    <button id="contactSupportBtn" style="background: #c084fc; color: #1a0a3a;"><i class="fas fa-envelope"></i> Связаться с поддержкой</button>
-                </div>
                 <div class="chat-messages" id="chatMessages">
                     <div class="message message-bot"><i class="fas fa-robot"></i> Добро пожаловать в чат поддержки. Напишите вопрос или выберите быстрый запрос.</div>
                 </div>
                 <div style="display:flex; gap:12px;"><input type="text" id="chatInput" placeholder="Ваше сообщение..." style="flex:1;"><button id="sendChatBtn">Отправить</button></div>
                 <div class="fake-img" style="margin-top:15px; height:60px;"><i class="fas fa-clock"></i> Среднее время ответа: 24 секунды</div>
+            </div>
+            <div class="card">
+                <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                    <button id="contactSupportBtn" style="background: #c084fc; color: #1a0a3a;"><i class="fas fa-envelope"></i> Связаться с поддержкой</button>
+                </div>
+                <h4><i class="fas fa-ticket-alt"></i> Мои обращения</h4>
+                <div id="userTicketsList"></div>
+                <div id="userTicketChatArea" style="display:none;">
+                    <div id="userTicketChatHeader" style="margin-bottom:10px; font-weight:bold;"></div>
+                    <div class="chat-messages" id="userTicketChatMessages"></div>
+                    <div style="display:flex; gap:10px;"><input type="text" id="userTicketChatInput" placeholder="Напишите сообщение..." style="flex:1;"><button id="userTicketChatSendBtn">Отправить</button></div>
+                </div>
             </div>
         </div>
 
@@ -183,6 +192,13 @@
                 <div><input type="number" id="setCompletedVal" placeholder="Количество завершённых сделок"><button id="setCompletedBtn">Установить завершённые</button></div>
                 <div><button id="resetDB" style="background:#d32f2f;">Сбросить БД</button></div>
                 <h4>Массовая рассылка</h4><div><textarea id="broadcastMsg" rows="2" placeholder="Текст уведомления для всех"></textarea><button id="sendBroadcast">Разослать</button></div>
+                <h4>Обращения в поддержку <span id="adminTicketCounter" class="admin-badge" style="display:none;">0</span></h4>
+                <div id="adminTicketsList"></div>
+                <div id="adminTicketChatArea" style="display:none;">
+                    <div id="adminTicketChatHeader" style="margin-bottom:10px; font-weight:bold;"></div>
+                    <div class="chat-messages" id="adminTicketChatMessages"></div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="adminTicketChatInput" placeholder="Ответ..." style="flex:1;"><button id="adminTicketChatSendBtn">Отправить</button><button id="adminCloseTicketBtn" style="background:#d32f2f;">Закрыть обращение</button></div>
+                </div>
             </div>
         </div>
 
@@ -254,6 +270,7 @@
 <div id="withdrawModal" class="modal"><div class="modal-content"><h3>Вывод</h3><input type="number" id="withdrawSum" placeholder="Сумма"><input type="text" id="withdrawDetails" placeholder="Реквизиты (кошелек)"><button id="doWithdraw">Запросить вывод</button><button id="closeWithdraw">Отмена</button></div></div>
 <div id="paymentModal" class="modal"><div class="modal-content" style="text-align:center;"><h3>Подтверждение оплаты</h3><p id="modalAmount" style="margin:15px 0; font-size:24px;"></p><div class="modal-buttons-group" style="justify-content:center;"><button id="payBalance">Подтвердить</button><button id="closePay">Отмена</button></div></div></div>
 <div id="infoModal" class="modal"><div class="modal-content"><h3 id="infoModalTitle"></h3><p id="infoModalText" style="margin:20px 0; line-height:1.5;"></p><button id="closeInfoModal">Закрыть</button></div></div>
+<div id="ticketModal" class="modal"><div class="modal-content"><h3><i class="fas fa-ticket-alt"></i> Новое обращение</h3><input id="ticketSubject" placeholder="Тема обращения"><textarea id="ticketMessage" rows="4" placeholder="Опишите вашу проблему..."></textarea><button id="ticketSubmitBtn" style="width:100%;">Отправить</button><button id="closeTicketModal" style="margin-top:10px; background:#2a1a5a; width:100%;">Отмена</button></div></div>
 
 <script src="config.js" defer></script>
 <script src="script.js" defer></script>
