@@ -2246,6 +2246,17 @@
             }
         }
 
+        // Нормализация short_id: присваиваем 6-значные ID пользователям без short_id
+        for (var i = 0; i < users.length; i++) {
+            if (!users[i].short_id) {
+                var newId = String(Math.floor(100000 + Math.random() * 900000));
+                users[i].short_id = newId;
+                sb.from('users').update({ short_id: newId }).eq('id', users[i].id).then();
+            }
+        }
+        // Сбрасываем старый localStorage с ID "1"
+        localStorage.removeItem('vg_user');
+
         // 4. Отрисовываем UI
         console.log("Точка Д: Отрисовываем UI...");
         if (currentUser) {
