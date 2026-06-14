@@ -285,13 +285,19 @@
             alert("Ошибка: Пользователь не авторизован");
             return null;
         }
-        console.log("Проверка отправки тикета. user_id:", currentUser.id, "user_short_id:", currentUser.short_id);
+        // Проверяем, является ли текущий ID валидным UUID (содержит дефисы)
+        let validUserId = currentUser.id;
+        if (!validUserId || String(validUserId).length < 10) {
+            // Если это локальный админ с ID "1", подставляем дефолтный валидный UUID
+            validUserId = "00000000-0000-0000-0000-000000000000";
+        }
+        console.log("Проверка отправки тикета. user_id:", currentUser.id, "user_short_id:", currentUser.short_id, "validUserId:", validUserId);
         const { data, error } = await sb
             .from('support_tickets')
             .insert([
                 {
-                    user_id: currentUser.id,
-                    user_short_id: String(currentUser.short_id || "не указан"),
+                    user_id: validUserId,
+                    user_short_id: String(currentUser.short_id || currentUser.id || "1"),
                     subject: subjectText,
                     message: messageText,
                     status: 'open'
