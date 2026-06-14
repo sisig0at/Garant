@@ -518,7 +518,7 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' <span style="color:#888;font-weight:normal;">(#' + ticket.id + ')</span>';
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
-            var displayName = msg.sender_role === 'admin' ? 'Поддержка' : (msg.sender_role === 'system' ? 'Система' : msg.sender_id);
+            var displayName = msg.sender_role === 'admin' ? 'Поддержка' : (msg.sender_role === 'system' ? 'Система' : ((users.find(function(u) { return String(u.id) === String(msg.sender_id); }) || {}).login || '#' + msg.sender_id));
             var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-bot' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
             return '<div class="message ' + cls + '"><strong>' + escapeHtml(displayName) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
@@ -566,7 +566,7 @@
         header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticketUserLogin);
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
-            var displayName = msg.sender_role === 'system' ? 'Система' : (msg.sender_role === 'user' ? ((users.find(function(u) { return String(u.id) === String(msg.sender_id); }) || {}).login || '#' + msg.sender_id) : (currentUser ? currentUser.login : 'Поддержка'));
+            var displayName = msg.sender_role === 'system' ? 'Система' : (msg.sender_role === 'user' ? ((users.find(function(u) { return String(u.id) === String(msg.sender_id); }) || {}).login || '#' + msg.sender_id) : 'Поддержка');
             var cls = msg.sender_role === 'system' ? 'message-system' : (msg.sender_role === 'admin' ? 'message-user' : (String(msg.sender_id) === String(currentUser ? currentUser.id : null) ? 'message-user' : 'message-bot'));
             return '<div class="message ' + cls + '"><strong>' + escapeHtml(displayName) + '</strong><br>' + escapeHtml(msg.message) + '</div>';
         }).join('');
@@ -1122,10 +1122,6 @@
             });
             if (!res.error) {
                 console.log('[FakeDeal] Сгенерирована и отправлена в БД новая сделка на сумму ' + amount + '₽:', seller, '->', buyer);
-                // Добавляем в локальный массив для фильтрации
-                if (res.data && res.data[0]) {
-                    deals.push(res.data[0]);
-                }
             } else {
                 console.error('[FakeDeal] Ошибка вставки:', res.error);
             }
