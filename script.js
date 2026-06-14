@@ -1078,6 +1078,15 @@
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала ticket-messages:', status);
             });
+
+        // ---- Глобальный канал для массовой рассылки ----
+        sb.channel('global-broadcast')
+            .on('broadcast', { event: 'broadcast' }, function(payload) {
+                showToast('📢 ' + payload.message);
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала global-broadcast:', status);
+            });
     }
 
     function startLiveFeed() {
@@ -1982,7 +1991,14 @@
     function handleSendBroadcast() {
         if (!currentUser || currentUser.role !== 'admin') return;
         var msg = document.getElementById('broadcastMsg').value.trim();
-        if (msg) showToast('📢 ' + msg);
+        if (!msg) return;
+        sb.channel('global-broadcast').send({
+            type: 'broadcast',
+            event: 'broadcast',
+            payload: { message: msg }
+        });
+        showToast('📢 Рассылка отправлена всем пользователям');
+        document.getElementById('broadcastMsg').value = '';
     }
 
     async function resetAllData() {
