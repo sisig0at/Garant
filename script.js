@@ -1290,13 +1290,6 @@
             return;
         }
 
-        // Reset DB (admin)
-        if (target.closest('#resetDB')) {
-            if (confirm('Сбросить все данные?')) {
-                resetAllData();
-            }
-            return;
-        }
     });
 
     // ===== HANDLERS =====
@@ -1764,6 +1757,9 @@
                     showPage('homePage');
                 }
             } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].indexOf(hashPageId) !== -1) {
+                if (hashPageId === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) {
+                    hashPageId = 'homePage';
+                }
                 showPage(hashPageId);
             } else {
                 showPage('homePage');

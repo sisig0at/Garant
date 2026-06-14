@@ -704,6 +704,8 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 .hidden { display: none !important; }
 .admin-badge { background: #a855f7; padding: 2px 12px; border-radius: 40px; font-size: 11px; margin-left: 10px; }
 #adminPage { display: flex; flex-direction: column; gap: 20px; }
+#adminPage.hidden-page { display: none; }
+#adminPage.hidden { display: none !important; }
 #adminPage .stat-card { padding: 16px 20px; margin-bottom: 10px; }
 #adminPage input, #adminPage select { margin-bottom: 12px; }
 #adminPage button:not(.admin-page-btn) { margin-bottom: 8px; }
