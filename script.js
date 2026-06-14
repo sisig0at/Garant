@@ -280,6 +280,45 @@
         openTicketCount = supportTickets.filter(function(t) { return t.status === 'open'; }).length;
     }
 
+    async function loadUserTickets() {
+        if (!currentUser) return;
+        
+        console.log("Загрузка тикетов для пользователя с ID:", currentUser.id);
+        
+        const { data, error } = await sb
+            .from('support_tickets')
+            .select('*')
+            .or(`user_id.eq.${currentUser.id},user_short_id.eq.${currentUser.id}`)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Ошибка загрузки тикетов пользователя:", error.message);
+            return;
+        }
+
+        console.log("Тикеты пользователя успешно загружены из БД:", data);
+        renderUserTicketsList(data);
+    }
+
+    function renderUserTicketsList(tickets) {
+        let container = document.getElementById('userTicketsList');
+        if (!container) return;
+        if (!tickets || tickets.length === 0) {
+            container.innerHTML = '<p style="color:#888; text-align:center;">У вас нет обращений.</p>';
+            return;
+        }
+        container.innerHTML = tickets.map(function(t) {
+            var statusClass = t.status === 'open' ? 'open' : 'closed';
+            var statusText = t.status === 'open' ? 'Открыто' : 'Закрыто';
+            var activeClass = userCurrentTicketId === t.id ? ' active' : '';
+            return '<div class="ticket-item' + activeClass + '" data-ticket-id="' + t.id + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span class="ticket-subject">' + escapeHtml(t.subject) + '</span>' +
+                '<span class="ticket-status ' + statusClass + '">' + statusText + '</span></div>' +
+                '<div style="font-size:12px;color:#888;margin-top:4px;">' + new Date(t.created_at).toLocaleString() + '</div></div>';
+        }).join('');
+    }
+
     async function insertTicket(subjectText, messageText) {
         if (!currentUser || !currentUser.id) {
             alert("Ошибка: Пользователь не авторизован");
@@ -491,7 +530,7 @@
     function renderUserTickets() {
         let container = document.getElementById('userTicketsList');
         if (!container) return;
-        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_id === currentUser.id; }) : [];
+        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_id === currentUser.id || t.user_short_id === String(currentUser.id); }) : [];
         if (myTickets.length === 0) {
             container.innerHTML = '<p style="color:#888; text-align:center;">У вас нет обращений.</p>';
             return;
@@ -654,20 +693,31 @@
     }
 
     async function renderAdminDeals() {
-        console.log("Вызов renderAdminDeals...");
+        console.log("Вызов жестко отфильтрованной функции renderAdminDeals...");
+        
+        // 1. Фильтруем на уровне запроса к базе
         const { data, error } = await sb
             .from('deals')
             .select('*')
-            .eq('is_fake', false)
-            .order('created_at', { ascending: false });
+            .eq('is_fake', false);
+
         if (error) {
             console.error("Ошибка загрузки сделок для админки:", error.message);
             return;
         }
-        console.log("Сделки для админки успешно загружены:", data && data.length);
+
+        // 2. Дополнительно фильтруем массив в JS на случай, если в базе BOOLEAN записан как строка
+        const realDealsOnly = data.filter(deal => deal.is_fake !== true && deal.is_fake !== 'true');
+
+        console.log("Сделки для админки успешно отфильтрованы. Настоящих сделок:", realDealsOnly.length);
+        
+        displayAdminDealsTable(realDealsOnly); 
+    }
+
+    function displayAdminDealsTable(dealsArray) {
         let dealsDiv = document.getElementById('adminDealsList');
         if (!dealsDiv) return;
-        dealsDiv.innerHTML = (data || []).map(function(d) {
+        dealsDiv.innerHTML = (dealsArray || []).map(function(d) {
             return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
                 ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
                 ' <button class="adminDeleteDeal" data-id="' + d.id + '">Удалить</button></div>';
@@ -2123,6 +2173,9 @@
 
         // 4. Отрисовываем UI
         console.log("Точка Д: Отрисовываем UI...");
+        if (currentUser) {
+            await loadUserTickets();
+        }
         updateUI();
         updateGlobalStats();
         renderReviews();
