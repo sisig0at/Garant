@@ -388,9 +388,10 @@
     }
 
     async function renderAdminPanel() {
+        console.log("[AdminPanel] Рендер админ-панели. currentUser:", currentUser ? currentUser.login + " роль:" + currentUser.role : "null", "isAdmin:", window.isAdmin);
         if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
             var ap = document.getElementById('adminPage');
-            if (ap) ap.classList.add('hidden', 'hidden-page');
+            if (ap) ap.classList.add('hidden-page');
             return;
         }
         document.getElementById('adminStats').innerHTML =
@@ -456,7 +457,7 @@
         // Принудительно скрываем админ-панель для не-админов при каждом рендере сделки
         if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
             var adminPanel = document.getElementById('adminPage');
-            if (adminPanel) { adminPanel.classList.add('hidden', 'hidden-page'); }
+            if (adminPanel) { adminPanel.classList.add('hidden-page'); }
         }
         let deal = deals.find(function(d) { return d.id == dealId; });
         if (!deal) {
@@ -611,21 +612,45 @@
     // ===== PAGE NAVIGATION =====
 
     function showPage(pageId) {
-        // СИНХРОННАЯ ЗАЩИТА: если не админ, перенаправляем на главную
-        if (pageId === 'adminPage') {
-            if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
-                pageId = 'homePage';
-            }
-        }
         // Принудительно скрываем админку для не-админов
         if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
             var adminPanel = document.getElementById('adminPage');
-            if (adminPanel) { adminPanel.classList.add('hidden', 'hidden-page'); }
+            if (adminPanel) { adminPanel.classList.add('hidden-page'); }
         }
         ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].forEach(function(p) {
             var el = document.getElementById(p);
             if (el) el.classList.add('hidden-page');
         });
+        // Для админ-панели: НЕ показываем её сразу — сначала верифицируем роль из БД
+        if (pageId === 'adminPage') {
+            document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
+            var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' };
+            var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
+            if (key) {
+                var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
+                if (link) link.classList.add('active');
+            }
+            console.log("[AdminPanel] Запрос верификации роли из БД перед показом админки...");
+            verifyAdminRole().then(function(isAdmin) {
+                if (!isAdmin) {
+                    console.log("[AdminPanel] ДОСТУП ЗАПРЕЩЁН: пользователь не админ.");
+                    var ap = document.getElementById('adminPage');
+                    if (ap) ap.classList.add('hidden-page');
+                    showPage('homePage');
+                    return;
+                }
+                console.log("[AdminPanel] Роль подтверждена из БД. Показываем админ-панель.");
+                var ap = document.getElementById('adminPage');
+                if (ap) {
+                    ap.classList.remove('hidden-page');
+                    ap.classList.remove('hidden');
+                }
+                adminUserPage = 1;
+                renderAdminPanel();
+            });
+            return;
+        }
+        // Для всех остальных страниц — показываем сразу
         var target = document.getElementById(pageId);
         if (target) target.classList.remove('hidden-page');
         document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
@@ -637,19 +662,6 @@
         }
         if (pageId === 'dealsPage') renderDeals();
         if (pageId === 'profilePage') renderProfile();
-        if (pageId === 'adminPage') {
-            // АСИНХРОННАЯ ЗАЩИТА: верификация роли напрямую из БД Supabase
-            verifyAdminRole().then(function(isAdmin) {
-                if (!isAdmin) {
-                    var ap = document.getElementById('adminPage');
-                    if (ap) ap.classList.add('hidden', 'hidden-page');
-                    showPage('homePage');
-                    return;
-                }
-                adminUserPage = 1; renderAdminPanel();
-            });
-            return;
-        }
         if (pageId === 'reviewsPage') renderReviews();
         if (pageId === 'homePage') {
             setTimeout(initFaq, 100);
