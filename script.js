@@ -707,13 +707,15 @@
     }
 
     async function renderAdminDeals() {
-        console.log("Вызов жестко отфильтрованной функции renderAdminDeals...");
+        if (!currentUser || currentUser.role !== 'admin') return;
+        console.log("Вызов renderAdminDeals (только реальные сделки)...");
         
         // 1. Фильтруем на уровне запроса к базе (булево false, не строка)
         const { data: allDeals, error } = await sb
             .from('deals')
             .select('*')
-            .eq('is_fake', false);
+            .eq('is_fake', false)
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error("Ошибка загрузки сделок для админки:", error.message);
@@ -995,13 +997,13 @@
     }
 
     async function loadInitialDeals() {
-        console.log("Вызов исправленной функции loadInitialDeals...");
+        console.log("Вызов loadInitialDeals (OR-фильтр: фейки + закрытые реальные)...");
         const { data, error } = await sb
             .from('deals')
             .select('*')
-            .eq('is_fake', false)
+            .or('is_fake.eq.true,status.eq.completed')
             .order('created_at', { ascending: false })
-            .limit(3);
+            .limit(10);
         if (error) {
             console.error("Ошибка загрузки стартовых сделок:", error.message);
             return;
@@ -1023,7 +1025,7 @@
             }
             return;
         }
-        console.log("Стартовые сделки успешно загружены:", data);
+        console.log("Стартовые сделки успешно загружены:", data.length);
         renderRecentDealsList(data);
     }
 
@@ -1076,18 +1078,19 @@
                 console.log('[Realtime] Статус канала deal-status:', status);
             });
 
-        // ---- Канал для ленты сделок ----
+        // ---- Канал для ленты сделок (фейки + закрытые реальные) ----
         sb.channel('deals-feed')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
                 var d = payload.new;
-                if (d.status !== 'completed') return;
-                if (payload.eventType === 'UPDATE' && payload.old && payload.old.status === 'completed') return;
-                console.log('[Realtime] Новая завершённая сделка:', d);
+                // Показываем только фейки ИЛИ завершённые реальные сделки
+                if (!d.is_fake && d.status !== 'completed') return;
+                if (payload.eventType === 'UPDATE' && payload.old && payload.old.status === 'completed' && !payload.old.is_fake) return;
+                console.log('[Realtime] Новая сделка в ленту:', d.id, 'is_fake:', d.is_fake, 'status:', d.status);
                 var feedDiv = document.getElementById('liveDealsFeed');
                 if (!feedDiv) return;
                 var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
                 lastDealsFeedArray.unshift(entry);
-                if (lastDealsFeedArray.length > 6) lastDealsFeedArray.pop();
+                if (lastDealsFeedArray.length > 10) lastDealsFeedArray.pop();
                 feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
                     return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
                 }).join('');
