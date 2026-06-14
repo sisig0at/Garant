@@ -473,7 +473,7 @@
     function renderUserTickets() {
         let container = document.getElementById('userTicketsList');
         if (!container) return;
-        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_login === currentUser.login; }) : [];
+        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_id === currentUser.id; }) : [];
         if (myTickets.length === 0) {
             container.innerHTML = '<p style="color:#888; text-align:center;">У вас нет обращений.</p>';
             return;
@@ -533,7 +533,7 @@
                 '<div style="display:flex;justify-content:space-between;align-items:center;">' +
                 '<span class="ticket-subject">' + escapeHtml(t.subject) + '</span>' +
                 '<span class="ticket-status ' + statusClass + '">' + statusText + '</span></div>' +
-                '<div style="font-size:12px;color:#888;margin-top:4px;">' + escapeHtml(t.user_login) + ' — ' + new Date(t.created_at).toLocaleString() + '</div></div>';
+                '<div style="font-size:12px;color:#888;margin-top:4px;">' + escapeHtml((users.find(function(u) { return u.id === t.user_id; }) || {}).login || '#' + t.user_id) + ' — ' + new Date(t.created_at).toLocaleString() + '</div></div>';
         }).join('');
     }
 
@@ -544,7 +544,8 @@
         if (!area || !header || !container) return;
         let ticket = supportTickets.find(function(t) { return t.id === ticketId; });
         if (!ticket) { area.style.display = 'none'; return; }
-        header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticket.user_login);
+        var ticketUserLogin = (users.find(function(u) { return u.id === ticket.user_id; }) || {}).login || '#' + ticket.user_id;
+        header.innerHTML = '<i class="fas fa-ticket-alt"></i> ' + escapeHtml(ticket.subject) + ' (#' + ticket.id + ') — ' + escapeHtml(ticketUserLogin);
         let messages = supportTicketMessages[ticketId] || [];
         container.innerHTML = messages.map(function(msg) {
             var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : (msg.sender === 'Система' ? 'message-system' : 'message-bot');
@@ -626,7 +627,7 @@
 
         let dealsDiv = document.getElementById('adminDealsList');
         if (dealsDiv) {
-            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false).neq('seller', 'Demo').order('id', { ascending: false });
+            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false).order('created_at', { ascending: false });
             var adminDeals = (!dealsRes.error && dealsRes.data) ? dealsRes.data : [];
             dealsDiv.innerHTML = adminDeals.map(function(d) {
                 return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
@@ -899,6 +900,7 @@
         const { data, error } = await sb
             .from('deals')
             .select('*')
+            .eq('is_fake', false)
             .eq('status', 'completed')
             .order('created_at', { ascending: false })
             .limit(3);
@@ -1613,8 +1615,7 @@
         var message = document.getElementById('ticketMessage').value.trim();
         if (!subject || !message) { showToast('Заполните тему и сообщение'); return; }
         var ticket = {
-            user_login: currentUser.login,
-            user_short_id: currentUser.short_id || null,
+            user_id: currentUser.id,
             subject: subject,
             message: message,
             status: 'open'
