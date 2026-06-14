@@ -11,7 +11,6 @@
     });
 
     let currentUser = null;
-    let authUserId = null;
     let users = [];
     let deals = [];
     let reviews = [];
@@ -281,15 +280,32 @@
         openTicketCount = supportTickets.filter(function(t) { return t.status === 'open'; }).length;
     }
 
-    async function insertTicket(ticket) {
-        let r = await sb.from('support_tickets').insert(ticket).select();
-        if (!r.error && r.data && r.data[0]) {
-            supportTickets.unshift(r.data[0]);
-            recalcOpenTicketCount();
-            return r.data[0];
+    async function insertTicket(subjectText, messageText) {
+        if (!currentUser || !currentUser.id) {
+            alert("Ошибка: Пользователь не авторизован");
+            return null;
         }
-        if (r.error) {
-            console.error("[insertTicket] Критическая ошибка Supabase:", r.error.message, r.error.details, r.error.hint);
+        const { data, error } = await sb
+            .from('support_tickets')
+            .insert([
+                {
+                    user_id: currentUser.id,
+                    user_short_id: String(currentUser.short_id || "не указан"),
+                    subject: subjectText,
+                    message: messageText,
+                    status: 'open'
+                }
+            ])
+            .select();
+        if (error) {
+            console.error("Критическая ошибка Supabase при отправке тикета:", error.message);
+            alert("Ошибка отправки: " + error.message);
+            return null;
+        }
+        if (data && data[0]) {
+            supportTickets.unshift(data[0]);
+            recalcOpenTicketCount();
+            return data[0];
         }
         return null;
     }
@@ -626,16 +642,7 @@
             }
         }
 
-        let dealsDiv = document.getElementById('adminDealsList');
-        if (dealsDiv) {
-            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false);
-            var adminDeals = (!dealsRes.error && dealsRes.data) ? dealsRes.data.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); }) : [];
-            dealsDiv.innerHTML = adminDeals.map(function(d) {
-                return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
-                    ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
-                    ' <button class="adminDeleteDeal" data-id="' + d.id + '">Удалить</button></div>';
-            }).join('');
-        }
+        await renderAdminDeals();
         renderAdminTickets();
         if (adminCurrentTicketId) {
             renderAdminTicketChat(adminCurrentTicketId);
@@ -643,6 +650,26 @@
             var adminChatArea = document.getElementById('adminTicketChatArea');
             if (adminChatArea) adminChatArea.style.display = 'none';
         }
+    }
+
+    async function renderAdminDeals() {
+        console.log("Вызов исправленной функции renderAdminDeals...");
+        const { data, error } = await sb
+            .from('deals')
+            .select('*')
+            .eq('is_fake', false)
+            .order('created_at', { ascending: false });
+        if (error) {
+            console.error("Ошибка загрузки сделок для админки:", error.message);
+            return;
+        }
+        let dealsDiv = document.getElementById('adminDealsList');
+        if (!dealsDiv) return;
+        dealsDiv.innerHTML = (data || []).map(function(d) {
+            return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
+                ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
+                ' <button class="adminDeleteDeal" data-id="' + d.id + '">Удалить</button></div>';
+        }).join('');
     }
 
     function renderSingleDealChat(dealId) {
@@ -898,18 +925,19 @@
     }
 
     async function loadInitialDeals() {
+        console.log("Вызов исправленной функции loadInitialDeals...");
         const { data, error } = await sb
             .from('deals')
             .select('*')
             .eq('is_fake', false)
-            .eq('status', 'completed');
+            .order('created_at', { ascending: false })
+            .limit(3);
         if (error) {
-            console.error("Ошибка загрузки стартовых сделок:", error);
+            console.error("Ошибка загрузки стартовых сделок:", error.message);
             return;
         }
-        var sorted = (data || []).sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
-        console.log("Стартовые сделки загружены из БД (deals):", sorted.slice(0, 3));
-        renderRecentDealsList(sorted.slice(0, 3));
+        console.log("Стартовые сделки успешно загружены:", data);
+        renderRecentDealsList(data);
     }
 
     function renderRecentDealsList(data) {
@@ -1599,28 +1627,17 @@
         var subject = document.getElementById('ticketSubject').value.trim();
         var message = document.getElementById('ticketMessage').value.trim();
         if (!subject || !message) { showToast('Заполните тему и сообщение'); return; }
-        var ticket = {
-            user_id: authUserId || currentUser.id,
-            user_short_id: currentUser.short_id || null,
-            subject: subject,
-            message: message,
-            status: 'open'
-        };
-        var saved = await insertTicket(ticket);
+        var saved = await insertTicket(subject, message);
         if (saved) {
             document.getElementById('ticketModal').style.display = 'none';
             showToast('Обращение #' + saved.id + ' создано');
             renderUserTickets();
-            // При создании тикета сразу открываем его чат
             userCurrentTicketId = saved.id;
             renderUserTickets();
             renderUserTicketChat(saved.id);
-            // Автоматическое системное сообщение
             var sysMsg = { ticket_id: saved.id, sender: 'Система', text: 'Обращение создано. Ожидайте ответа администратора.', timestamp: new Date().toLocaleString() };
             await insertTicketMessage(saved.id, sysMsg);
             renderUserTicketChat(saved.id);
-        } else {
-            showToast('Ошибка создания обращения: проверьте консоль для деталей');
         }
     }
 
@@ -2060,7 +2077,6 @@
         if (session && session.user && session.user.email) {
             var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
             console.log("Сессия успешно восстановлена для:", session.user.id, "login:", sessionLogin);
-            authUserId = session.user.id;
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
