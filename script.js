@@ -1221,7 +1221,7 @@
     function startFakeDealsTimer() {
         console.log('[FakeDeal] Таймер фейковых сделок запущен');
         function tick() {
-            var delay = 120000 + Math.random() * 180000;
+            const delay = Math.floor(Math.random() * (900000 - 300000 + 1)) + 300000;
             setTimeout(async function() {
                 try {
                     await generateFakeDeal();
