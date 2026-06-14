@@ -500,7 +500,7 @@
         currentDealId = dealId;
         document.getElementById('mainContent').classList.add('hidden');
         document.getElementById('singleDealPage').classList.remove('hidden');
-        window.location.hash = 'deal_' + dealId;
+        window.location.hash = 'page-deal_' + dealId;
         loadSingleDealPage(dealId);
     }
 
@@ -508,7 +508,7 @@
         currentDealId = null;
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
-        window.location.hash = 'dealsPage';
+        window.location.hash = 'page-dealsPage';
         showPage('dealsPage');
     }
 
@@ -616,18 +616,27 @@
     // ===== PAGE NAVIGATION =====
 
     function showPage(pageId) {
+        // ===== УЛЬТИМАТИВНАЯ ЗАЩИТА АДМИНКИ =====
+        if (pageId === 'adminPage') {
+            if (!currentUser || currentUser.role !== 'admin') {
+                console.warn("Попытка несанкционированного доступа к админке! role:", currentUser ? currentUser.role : 'null');
+                window.location.hash = 'page-homePage';
+                showPage('homePage');
+                return;
+            }
+        }
         // Принудительно скрываем админку для не-админов
-        if (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin)) {
-            var adminPanel = document.getElementById('adminPage');
-            if (adminPanel) { adminPanel.classList.add('hidden-page'); }
+        if (!currentUser || currentUser.role !== 'admin') {
+            var ap = document.getElementById('adminPage');
+            if (ap) ap.classList.add('hidden-page');
         }
         ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].forEach(function(p) {
             var el = document.getElementById(p);
             if (el) el.classList.add('hidden-page');
         });
-        // Для админ-панели: НЕ показываем её сразу — сначала верифицируем роль из БД
+        // Для админ-панели: асинхронная верификация роли из БД
         if (pageId === 'adminPage') {
-            window.location.hash = 'adminPage';
+            window.location.hash = 'page-adminPage';
             document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
             var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' };
             var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
@@ -641,7 +650,7 @@
                     console.log("[AdminPanel] ДОСТУП ЗАПРЕЩЁН: пользователь не админ.");
                     var ap = document.getElementById('adminPage');
                     if (ap) ap.classList.add('hidden-page');
-                    window.location.hash = 'homePage';
+                    window.location.hash = 'page-homePage';
                     showPage('homePage');
                     return;
                 }
@@ -653,11 +662,12 @@
                 }
                 adminUserPage = 1;
                 renderAdminPanel();
+                window.scrollTo(0, 0);
             });
             return;
         }
         // Для всех остальных страниц — показываем сразу
-        window.location.hash = pageId;
+        window.location.hash = 'page-' + pageId;
         var target = document.getElementById(pageId);
         if (target) target.classList.remove('hidden-page');
         document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
@@ -667,6 +677,7 @@
             var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
             if (link) link.classList.add('active');
         }
+        window.scrollTo(0, 0);
         if (pageId === 'dealsPage') renderDeals();
         if (pageId === 'profilePage') renderProfile();
         if (pageId === 'reviewsPage') renderReviews();
@@ -1740,8 +1751,9 @@
         var currentHash = window.location.hash;
         if (currentHash) {
             var hashPageId = currentHash.replace('#', '');
-            if (hashPageId === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) {
-                hashPageId = 'homePage';
+            // Срезаем префикс page- (добавлен для предотвращения автоскролла браузера)
+            if (hashPageId.indexOf('page-') === 0) {
+                hashPageId = hashPageId.substring(5);
             }
             if (hashPageId.indexOf('deal_') === 0) {
                 var dealId = parseInt(hashPageId.split('_')[1]);
