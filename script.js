@@ -695,8 +695,8 @@
     async function renderAdminDeals() {
         console.log("Вызов жестко отфильтрованной функции renderAdminDeals...");
         
-        // 1. Фильтруем на уровне запроса к базе
-        const { data, error } = await sb
+        // 1. Фильтруем на уровне запроса к базе (булево false, не строка)
+        const { data: allDeals, error } = await sb
             .from('deals')
             .select('*')
             .eq('is_fake', false);
@@ -706,12 +706,16 @@
             return;
         }
 
-        // 2. Дополнительно фильтруем массив в JS на случай, если в базе BOOLEAN записан как строка
-        const realDealsOnly = data.filter(deal => deal.is_fake !== true && deal.is_fake !== 'true');
+        // 2. Строгая фильтрация: пропускаем только false или 'false'
+        const realDeals = allDeals.filter(deal => {
+            if (deal.is_fake === true || deal.is_fake === 'true') return false;
+            return deal.is_fake === false || deal.is_fake === 'false';
+        });
 
-        console.log("Сделки для админки успешно отфильтрованы. Настоящих сделок:", realDealsOnly.length);
+        console.log("Всего из базы:", allDeals.length, "После фильтрации:", realDeals.length);
+        console.log("Сделки для админки успешно отфильтрованы. Настоящих сделок:", realDeals.length);
         
-        displayAdminDealsTable(realDealsOnly); 
+        displayAdminDealsTable(realDeals); 
     }
 
     function displayAdminDealsTable(dealsArray) {
