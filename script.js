@@ -1057,9 +1057,9 @@
         if (!data || data.length === 0) {
             console.log("База сделок пуста. Создаём 3 стартовые реальные сделки...");
             const initialRealDeals = [
-                { seller: 'TradeMaster', buyer: 'NewUser', amount: 12500, item: 'CS2 Knife', status: 'completed', is_fake: false },
-                { seller: 'CryptoKing', buyer: 'Collector', amount: 5400, item: 'Steam Gift', status: 'completed', is_fake: false },
-                { seller: 'SkinVendor', buyer: 'TraderJoe', amount: 8900, item: 'Dota 2 Item', status: 'completed', is_fake: false }
+                { seller: 'TradeMaster', buyer: 'NewUser', amount: 12500, item: 'CS2 Knife', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 0 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() },
+                { seller: 'CryptoKing', buyer: 'Collector', amount: 5400, item: 'Steam Gift', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 1 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() },
+                { seller: 'SkinVendor', buyer: 'TraderJoe', amount: 8900, item: 'Dota 2 Item', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 2 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() }
             ];
             const { data: inserted, error: insError } = await sb.from('deals').insert(initialRealDeals).select();
             if (insError) {
