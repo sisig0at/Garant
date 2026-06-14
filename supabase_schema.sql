@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.deals (
     buyer TEXT NOT NULL,
     code TEXT,
     status TEXT NOT NULL DEFAULT 'waiting_payment',
+    is_fake BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

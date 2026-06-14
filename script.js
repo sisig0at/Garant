@@ -394,9 +394,10 @@
             if (ap) ap.classList.add('hidden-page');
             return;
         }
+        var realDealsCount = deals.filter(function(d) { return d.is_fake !== true; }).length;
         document.getElementById('adminStats').innerHTML =
             '<div class="stat-card">Пользователей: ' + users.length + '</div>' +
-            '<div class="stat-card">Сделок: ' + deals.length + '</div>';
+            '<div class="stat-card">Сделок (реальных): ' + realDealsCount + '</div>';
 
         // Paginated user list from Supabase
         let userListDiv = document.getElementById('userListAdmin');
@@ -432,7 +433,7 @@
 
         let dealsDiv = document.getElementById('adminDealsList');
         if (dealsDiv) {
-            var realDeals = deals.filter(function(d) { return d.seller !== 'Demo'; });
+            var realDeals = deals.filter(function(d) { return d.is_fake !== true && d.seller !== 'Demo'; });
             dealsDiv.innerHTML = realDeals.map(function(d) {
                 return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
                     ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
@@ -499,6 +500,7 @@
         currentDealId = dealId;
         document.getElementById('mainContent').classList.add('hidden');
         document.getElementById('singleDealPage').classList.remove('hidden');
+        window.location.hash = 'deal_' + dealId;
         loadSingleDealPage(dealId);
     }
 
@@ -506,6 +508,8 @@
         currentDealId = null;
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
+        window.location.hash = 'dealsPage';
+        showPage('dealsPage');
     }
 
     function updateGlobalStats() {
@@ -623,6 +627,7 @@
         });
         // Для админ-панели: НЕ показываем её сразу — сначала верифицируем роль из БД
         if (pageId === 'adminPage') {
+            window.location.hash = 'adminPage';
             document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
             var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' };
             var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
@@ -636,6 +641,7 @@
                     console.log("[AdminPanel] ДОСТУП ЗАПРЕЩЁН: пользователь не админ.");
                     var ap = document.getElementById('adminPage');
                     if (ap) ap.classList.add('hidden-page');
+                    window.location.hash = 'homePage';
                     showPage('homePage');
                     return;
                 }
@@ -651,6 +657,7 @@
             return;
         }
         // Для всех остальных страниц — показываем сразу
+        window.location.hash = pageId;
         var target = document.getElementById(pageId);
         if (target) target.classList.remove('hidden-page');
         document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
@@ -797,10 +804,15 @@
                 amount: amount,
                 item: item,
                 status: 'completed',
+                is_fake: true,
                 created_at: new Date().toISOString()
             });
             if (!res.error) {
                 console.log('[FakeDeal] Сгенерирована и отправлена в БД новая сделка на сумму ' + amount + '₽:', seller, '->', buyer);
+                // Добавляем в локальный массив для фильтрации
+                if (res.data && res.data[0]) {
+                    deals.push(res.data[0]);
+                }
             } else {
                 console.error('[FakeDeal] Ошибка вставки:', res.error);
             }
@@ -1655,7 +1667,17 @@
         if (error) console.error('[Session] Ошибка getSession:', error);
         console.log("Точка Б.1: getSession() завершён, session =", session ? session.user.id : null);
 
-        // 2. Загружаем все данные из БД
+        // 2. Добавляем колонку is_fake, если её нет (для фильтрации фейковых сделок)
+        try {
+            await sb.from('deals').select('is_fake').limit(1);
+        } catch(e) {
+            try {
+                await sb.rpc('exec_sql', { query: 'ALTER TABLE public.deals ADD COLUMN IF NOT EXISTS is_fake BOOLEAN NOT NULL DEFAULT false;' });
+            } catch(e2) {
+                console.warn('[Init] Не удалось добавить колонку is_fake:', e2.message);
+            }
+        }
+        // 3. Загружаем все данные из БД
         console.log("Точка В: Загружаем данные из БД...");
         await loadAllData();
         console.log("Точка В.1: Данные загружены, users =", users.length, "deals =", deals.length);
@@ -1711,11 +1733,32 @@
         // 7. Запускаем таймер фейковых сделок
         startFakeDealsTimer();
 
-        // 8. Показываем страницу
+        // 8. Показываем страницу (восстанавливаем из URL-хэша при F5)
         console.log("Точка Ж: Показываем страницу...");
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
-        showPage('homePage');
+        var currentHash = window.location.hash;
+        if (currentHash) {
+            var hashPageId = currentHash.replace('#', '');
+            if (hashPageId === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) {
+                hashPageId = 'homePage';
+            }
+            if (hashPageId.indexOf('deal_') === 0) {
+                var dealId = parseInt(hashPageId.split('_')[1]);
+                if (deals.find(function(d) { return d.id == dealId; })) {
+                    showPage('dealsPage');
+                    showSingleDeal(dealId);
+                } else {
+                    showPage('homePage');
+                }
+            } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].indexOf(hashPageId) !== -1) {
+                showPage(hashPageId);
+            } else {
+                showPage('homePage');
+            }
+        } else {
+            showPage('homePage');
+        }
 
         setTimeout(function() {
             startLiveFeed();
