@@ -285,18 +285,12 @@
             alert("Ошибка: Пользователь не авторизован");
             return null;
         }
-        // Проверяем, является ли текущий ID валидным UUID (содержит дефисы)
-        let validUserId = currentUser.id;
-        if (!validUserId || String(validUserId).length < 10) {
-            // Если это локальный админ с ID "1", подставляем дефолтный валидный UUID
-            validUserId = "00000000-0000-0000-0000-000000000000";
-        }
-        console.log("Проверка отправки тикета. user_id:", currentUser.id, "user_short_id:", currentUser.short_id, "validUserId:", validUserId);
+        console.log("Отправка тикета. user_id:", currentUser.id, "user_short_id:", currentUser.short_id);
         const { data, error } = await sb
             .from('support_tickets')
             .insert([
                 {
-                    user_id: validUserId,
+                    user_id: currentUser.id,
                     user_short_id: String(currentUser.short_id || currentUser.id || "1"),
                     subject: subjectText,
                     message: messageText,
@@ -660,7 +654,7 @@
     }
 
     async function renderAdminDeals() {
-        console.log("Вызов исправленной функции renderAdminDeals...");
+        console.log("Вызов renderAdminDeals...");
         const { data, error } = await sb
             .from('deals')
             .select('*')
@@ -670,6 +664,7 @@
             console.error("Ошибка загрузки сделок для админки:", error.message);
             return;
         }
+        console.log("Сделки для админки успешно загружены:", data && data.length);
         let dealsDiv = document.getElementById('adminDealsList');
         if (!dealsDiv) return;
         dealsDiv.innerHTML = (data || []).map(function(d) {
