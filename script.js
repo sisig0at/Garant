@@ -287,6 +287,9 @@
             recalcOpenTicketCount();
             return r.data[0];
         }
+        if (r.error) {
+            console.error("[insertTicket] Критическая ошибка Supabase:", r.error.message, r.error.details, r.error.hint);
+        }
         return null;
     }
 
@@ -315,6 +318,9 @@
             if (!supportTicketMessages[ticketId]) supportTicketMessages[ticketId] = [];
             supportTicketMessages[ticketId].push(r.data[0]);
             return r.data[0];
+        }
+        if (r.error) {
+            console.error("[insertTicketMessage] Критическая ошибка Supabase:", r.error.message, r.error.details, r.error.hint);
         }
         return null;
     }
@@ -580,7 +586,8 @@
             if (ap) ap.classList.add('hidden-page');
             return;
         }
-        var realDealsCount = deals.filter(function(d) { return d.is_fake !== true; }).length;
+        var countRes = await sb.from('deals').select('id', { count: 'exact', head: true }).eq('is_fake', false);
+        var realDealsCount = countRes.count || 0;
         document.getElementById('adminStats').innerHTML =
             '<div class="stat-card">Пользователей: ' + users.length + '</div>' +
             '<div class="stat-card">Сделок (реальных): ' + realDealsCount + '</div>';
@@ -619,8 +626,9 @@
 
         let dealsDiv = document.getElementById('adminDealsList');
         if (dealsDiv) {
-            var realDeals = deals.filter(function(d) { return d.is_fake !== true && d.seller !== 'Demo'; });
-            dealsDiv.innerHTML = realDeals.map(function(d) {
+            var dealsRes = await sb.from('deals').select('*').eq('is_fake', false).neq('seller', 'Demo').order('id', { ascending: false });
+            var adminDeals = (!dealsRes.error && dealsRes.data) ? dealsRes.data : [];
+            dealsDiv.innerHTML = adminDeals.map(function(d) {
                 return '<div>#' + d.id + ' ' + escapeHtml(d.item) + ' ' + (d.amount || 0) + '₽ ' + getStatusText(d.status) +
                     ' <button class="adminChangeStatus" data-id="' + d.id + '">Изменить статус</button>' +
                     ' <button class="adminDeleteDeal" data-id="' + d.id + '">Удалить</button></div>';
@@ -1625,7 +1633,7 @@
             await insertTicketMessage(saved.id, sysMsg);
             renderUserTicketChat(saved.id);
         } else {
-            showToast('Ошибка создания обращения');
+            showToast('Ошибка создания обращения: проверьте консоль для деталей');
         }
     }
 
