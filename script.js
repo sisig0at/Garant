@@ -692,6 +692,20 @@
         }
     }
 
+    // ===== ОЧИСТКА ТАБЛИЦЫ DEALS (ДЛЯ АДМИНА) =====
+    async function clearAllDeals() {
+        console.log("Запуск полной очистки таблицы deals...");
+        const { data, error } = await sb
+            .from('deals')
+            .delete()
+            .neq('id', '');
+        if (error) {
+            console.error("Ошибка очистки базы:", error);
+        } else {
+            console.log("Таблица deals успешно очищена!");
+        }
+    }
+
     async function renderAdminDeals() {
         console.log("Вызов жестко отфильтрованной функции renderAdminDeals...");
         
@@ -990,6 +1004,23 @@
             .limit(3);
         if (error) {
             console.error("Ошибка загрузки стартовых сделок:", error.message);
+            return;
+        }
+        // Если база пуста — создаём 3 стартовые реальные сделки
+        if (!data || data.length === 0) {
+            console.log("База сделок пуста. Создаём 3 стартовые реальные сделки...");
+            const initialRealDeals = [
+                { seller: 'TradeMaster', buyer: 'NewUser', amount: 12500, item: 'CS2 Knife', status: 'completed', is_fake: false },
+                { seller: 'CryptoKing', buyer: 'Collector', amount: 5400, item: 'Steam Gift', status: 'completed', is_fake: false },
+                { seller: 'SkinVendor', buyer: 'TraderJoe', amount: 8900, item: 'Dota 2 Item', status: 'completed', is_fake: false }
+            ];
+            const { data: inserted, error: insError } = await sb.from('deals').insert(initialRealDeals).select();
+            if (insError) {
+                console.error("Ошибка создания стартовых сделок:", insError.message);
+            } else {
+                console.log("Стартовые сделки успешно созданы:", inserted);
+                renderRecentDealsList(inserted);
+            }
             return;
         }
         console.log("Стартовые сделки успешно загружены:", data);
