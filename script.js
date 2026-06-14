@@ -98,7 +98,7 @@
             return false;
         }
         try {
-            const { data, error } = await sb.from('users').select('role').eq('id', currentUser.id).single();
+            const { data, error } = await sb.from('users').select('role').eq('login', currentUser.login).single();
             if (!error && data && data.role === 'admin') {
                 currentUser.role = 'admin';
                 window.isAdmin = true;
@@ -285,6 +285,7 @@
             alert("Ошибка: Пользователь не авторизован");
             return null;
         }
+        console.log("Проверка отправки тикета. user_id:", currentUser.id, "user_short_id:", currentUser.short_id);
         const { data, error } = await sb
             .from('support_tickets')
             .insert([
@@ -2080,6 +2081,7 @@
             var u = findUserByLogin(sessionLogin);
             if (u && !u.banned) {
                 currentUser = u;
+                currentUser.id = session.user.id;
                 await verifyAdminRole();
                 console.log('[Session] Пользователь восстановлен:', currentUser.login, 'admin:', window.isAdmin);
             } else {
