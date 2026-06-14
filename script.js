@@ -673,6 +673,11 @@
         if (!currentUser || currentUser.role !== 'admin') return;
         autoCleanSupportTickets();
         autoCleanFakeDeals();
+        // Запускаем генератор фейков только в сессии админа
+        if (!window._fakeDealTimerStarted) {
+            window._fakeDealTimerStarted = true;
+            startFakeDealsTimer();
+        }
         if (!window._adminCleanInterval) {
             window._adminCleanInterval = setInterval(function() {
                 autoCleanSupportTickets();
@@ -1042,7 +1047,7 @@
     }
 
     async function loadInitialDeals() {
-        console.log("Вызов loadInitialDeals (OR-фильтр: фейки + закрытые реальные)...");
+        console.log("Вызов loadInitialDeals (пассивная загрузка, без INSERT)...");
         const { data, error } = await sb
             .from('deals')
             .select('*')
@@ -1053,21 +1058,9 @@
             console.error("Ошибка загрузки стартовых сделок:", error.message);
             return;
         }
-        // Если база пуста — создаём 3 стартовые реальные сделки
         if (!data || data.length === 0) {
-            console.log("База сделок пуста. Создаём 3 стартовые реальные сделки...");
-            const initialRealDeals = [
-                { seller: 'TradeMaster', buyer: 'NewUser', amount: 12500, item: 'CS2 Knife', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 0 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() },
-                { seller: 'CryptoKing', buyer: 'Collector', amount: 5400, item: 'Steam Gift', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 1 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() },
-                { seller: 'SkinVendor', buyer: 'TraderJoe', amount: 8900, item: 'Dota 2 Item', status: 'completed', is_fake: false, created_at: new Date(Date.now() - 2 * (Math.floor(Math.random() * 10) + 5) * 60 * 1000).toISOString() }
-            ];
-            const { data: inserted, error: insError } = await sb.from('deals').insert(initialRealDeals).select();
-            if (insError) {
-                console.error("Ошибка создания стартовых сделок:", insError.message);
-            } else {
-                console.log("Стартовые сделки успешно созданы:", inserted);
-                renderRecentDealsList(inserted);
-            }
+            console.log("База сделок пуста. Главная страница ожидает фейков от админа.");
+            renderRecentDealsList([]);
             return;
         }
         console.log("Стартовые сделки успешно загружены:", data.length);
@@ -1233,6 +1226,7 @@
 
     // ===== ГЕНЕРАЦИЯ ФЕЙКОВЫХ СДЕЛОК (каждые 2–5 мин) =====
     async function generateFakeDeal() {
+        if (!currentUser || currentUser.role !== 'admin') return;
         var sellers = ['TradeMaster', 'CryptoKing', 'SkinVendor', 'GameSeller', 'DigitalTrader', 'QuickDeal', 'SafeTrade', 'ProSeller'];
         var buyers = ['NewUser', 'BuyerPro', 'Collector', 'TraderJoe', 'CryptoFan', 'GameBuyer', 'DigitalBuyer', 'SafeBuyer'];
         var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
@@ -2271,9 +2265,6 @@
         // 6. Подключаем Realtime каналы
         console.log('[Realtime] Настройка подписок...');
         setupRealtimeSubscriptions();
-
-        // 7. Запускаем таймер фейковых сделок
-        startFakeDealsTimer();
 
         // 7.5 Авто-удаление старых закрытых тикетов
         await autoDeleteOldClosedTickets();
