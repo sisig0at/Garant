@@ -36,8 +36,8 @@
             currentUser = null;
             try { updateUI(); } catch(e) {}
         } else if (session && session.user && session.user.email && users.length > 0) {
-            var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
-            var u = findUserByLogin(sessionLogin);
+            var sessionEmail = session.user.email;
+            var u = users.find(function(x) { return x.email === sessionEmail; });
             if (u && !u.banned) {
                 currentUser = u;
                 verifyAdminRole().then(function() {
@@ -877,13 +877,16 @@
 
     // ===== AUTH =====
 
-    async function registerUser(login, pass) {
+    async function registerUser(login, email, pass) {
         let exists = users.find(function(u) { return u.login === login; });
         if (exists) return { ok: false, msg: 'Логин занят' };
+        let emailExists = users.find(function(u) { return u.email === email; });
+        if (emailExists) return { ok: false, msg: 'Email уже используется' };
         let isFirst = users.length === 0;
         let shortId = await generateShortId();
         let newUser = {
             login: login,
+            email: email,
             password: pass,
             role: isFirst ? 'admin' : 'user',
             balance: 0,
@@ -895,19 +898,19 @@
         };
         let saved = await insertUser(newUser);
         if (saved) {
-            try { await sb.auth.signUp({ email: login + '@vg.local', password: pass }); } catch (e) {}
+            try { await sb.auth.signUp({ email: email, password: pass }); } catch (e) {}
             return { ok: true, msg: isFirst ? 'Вы первый администратор! Войдите.' : 'Регистрация успешна' };
         }
         return { ok: false, msg: 'Ошибка сервера. Возможно, таблица users не создана.' };
     }
 
-    async function loginUser(login, pass) {
-        if (login === 'violet_admin' && pass === 'admin2025') {
-            let admin = users.find(function(u) { return u.login === login; });
+    async function loginUser(identifier, pass) {
+        if (identifier === 'violet_admin' && pass === 'admin2025') {
+            let admin = users.find(function(u) { return u.login === identifier; });
             if (!admin) {
                 let shortId = await generateShortId();
                 let newAdmin = {
-                    login: login,
+                    login: identifier,
                     password: pass,
                     role: 'admin',
                     balance: 0,
@@ -926,26 +929,17 @@
                 await upsertUser(admin);
                 currentUser = admin;
             }
-            try { await sb.auth.signUp({ email: login + '@vg.local', password: pass }); } catch (e) {}
-            try { await sb.auth.signInWithPassword({ email: login + '@vg.local', password: pass }); } catch (e) {}
-            return { ok: true, msg: 'Вы вошли как администратор ' + login };
+            try { await sb.auth.signInWithPassword({ email: identifier + '@vg.local', password: pass }); } catch (e) {}
+            return { ok: true, msg: 'Вы вошли как администратор ' + identifier };
         }
-        try {
-            var authRes = await sb.auth.signInWithPassword({ email: login + '@vg.local', password: pass });
-            if (authRes.data && authRes.data.session) {
-                let u = users.find(function(u) { return u.login === login; });
-                if (u) {
-                    if (u.banned) return { ok: false, msg: 'Аккаунт заблокирован' };
-                    currentUser = u;
-                    return { ok: true, msg: 'С возвращением, ' + login };
-                }
-            }
-        } catch (e) {}
-        let u = users.find(function(u) { return u.login === login && u.password === pass; });
+        let u = users.find(function(u) { return (u.login === identifier || u.email === identifier) && u.password === pass; });
         if (!u) return { ok: false, msg: 'Неверный логин/пароль' };
         if (u.banned) return { ok: false, msg: 'Аккаунт заблокирован' };
         currentUser = u;
-        return { ok: true, msg: 'С возвращением, ' + login };
+        if (u.email) {
+            try { await sb.auth.signInWithPassword({ email: u.email, password: pass }); } catch (e) {}
+        }
+        return { ok: true, msg: 'С возвращением, ' + u.login };
     }
 
     async function logout() {
@@ -1301,8 +1295,10 @@
         var title = document.getElementById('authTitle');
         var submit = document.getElementById('authSubmit');
         var switcher = document.getElementById('switchAuth');
-        var loginInp = document.getElementById('authLogin');
+        var loginInp = document.getElementById('login-identifier');
         var passInp = document.getElementById('authPass');
+        var emailInp = document.getElementById('reg-email');
+        var passConfirmInp = document.getElementById('reg-password-confirm');
         var errEl = document.getElementById('authError');
         if (!title || !submit || !switcher) return;
 
@@ -1310,8 +1306,11 @@
         title.innerText = 'Вход';
         submit.innerText = 'Войти';
         switcher.innerText = 'Нет аккаунта? Регистрация';
+        loginInp.placeholder = 'Логин или Email';
         loginInp.value = '';
         passInp.value = '';
+        if (emailInp) { emailInp.style.display = 'none'; emailInp.value = ''; }
+        if (passConfirmInp) { passConfirmInp.style.display = 'none'; passConfirmInp.value = ''; }
         if (errEl) errEl.style.display = 'none';
 
         var handler = async function() {
@@ -1338,15 +1337,36 @@
                     }
                 }
             } else {
-                var res2 = await registerUser(log, pwd);
-                showToast(res2.msg);
+                var email = emailInp ? emailInp.value.trim() : '';
+                var pwdConfirm = passConfirmInp ? passConfirmInp.value.trim() : '';
+                if (pwd !== pwdConfirm) {
+                    if (errEl) {
+                        errEl.innerText = 'Пароли не совпадают!';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
+                var res2 = await registerUser(log, email, pwd);
+                if (!res2.ok) {
+                    if (errEl) {
+                        errEl.innerText = res2.msg;
+                        errEl.style.display = 'block';
+                    } else {
+                        showToast(res2.msg);
+                    }
+                }
                 if (res2.ok) {
                     isLoginMode = true;
                     title.innerText = 'Вход';
                     submit.innerText = 'Войти';
                     switcher.innerText = 'Нет аккаунта? Регистрация';
+                    loginInp.placeholder = 'Логин или Email';
                     loginInp.value = '';
                     passInp.value = '';
+                    if (emailInp) { emailInp.style.display = 'none'; emailInp.value = ''; }
+                    if (passConfirmInp) { passConfirmInp.style.display = 'none'; passConfirmInp.value = ''; }
+                    if (errEl) errEl.style.display = 'none';
+                    showToast(res2.msg);
                 }
             }
         };
@@ -1356,19 +1376,38 @@
         passInp.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') { e.preventDefault(); handler(); }
         });
+        if (emailInp) {
+            emailInp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); handler(); }
+            });
+        }
+        if (passConfirmInp) {
+            passConfirmInp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); handler(); }
+            });
+        }
         var switchHandler = function() {
             isLoginMode = !isLoginMode;
             if (isLoginMode) {
                 title.innerText = 'Вход';
                 submit.innerText = 'Войти';
                 switcher.innerText = 'Нет аккаунта? Регистрация';
+                loginInp.placeholder = 'Логин или Email';
+                if (emailInp) emailInp.style.display = 'none';
+                if (passConfirmInp) passConfirmInp.style.display = 'none';
             } else {
                 title.innerText = 'Регистрация';
                 submit.innerText = 'Зарегистрироваться';
                 switcher.innerText = 'Уже есть аккаунт? Войти';
+                loginInp.placeholder = 'Логин';
+                if (emailInp) emailInp.style.display = '';
+                if (passConfirmInp) passConfirmInp.style.display = '';
             }
             loginInp.value = '';
             passInp.value = '';
+            if (emailInp) emailInp.value = '';
+            if (passConfirmInp) passConfirmInp.value = '';
+            if (errEl) errEl.style.display = 'none';
         };
         submit.onclick = handler;
         switcher.onclick = switchHandler;
@@ -2215,9 +2254,9 @@
         // 3. Восстанавливаем пользователя по сессии
         console.log("Точка Г: Восстанавливаем пользователя...");
         if (session && session.user && session.user.email) {
-            var sessionLogin = session.user.email.replace(/@vg\.local$/, '');
-            console.log("Сессия успешно восстановлена для:", session.user.id, "login:", sessionLogin);
-            var u = findUserByLogin(sessionLogin);
+            var sessionEmail = session.user.email;
+            console.log("Сессия успешно восстановлена для:", session.user.id, "email:", sessionEmail);
+            var u = users.find(function(x) { return x.email === sessionEmail; });
             if (u && !u.banned) {
                 currentUser = u;
                 currentUser.id = session.user.id;

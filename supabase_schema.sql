@@ -7,6 +7,7 @@
 CREATE TABLE IF NOT EXISTS public.users (
     id BIGSERIAL PRIMARY KEY,
     login TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     password TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',
     balance NUMERIC NOT NULL DEFAULT 0,
