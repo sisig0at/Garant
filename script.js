@@ -1404,7 +1404,7 @@
             var ap = document.getElementById('adminPage');
             if (ap) ap.classList.add('hidden-page');
         }
-        ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].forEach(function(p) {
+        ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage'].forEach(function(p) {
             var el = document.getElementById(p);
             if (el) el.classList.add('hidden-page');
         });
@@ -1412,7 +1412,7 @@
         if (pageId === 'adminPage') {
             window.location.hash = 'page-adminPage';
             document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
-        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' };
+        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', settings: 'settingsPage' };
             var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
             if (key) {
                 var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
@@ -1445,7 +1445,7 @@
         var target = document.getElementById(pageId);
         if (target) target.classList.remove('hidden-page');
         document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
-        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' };
+        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', settings: 'settingsPage' };
         var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
         if (key) {
             var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
@@ -1999,7 +1999,6 @@
         var navLink = target.closest('.nav-links a');
         if (navLink) {
             var page = navLink.dataset.page;
-            if (page === 'help') { showPage('helpPage'); return; }
             if (!currentUser && page !== 'home') { openAuthModal(); return; }
             // Дополнительная защита: если кто-то пытается перейти в админку не будучи админом
             if (page === 'admin' && (!currentUser || (currentUser.role !== 'admin' && !window.isAdmin))) {
@@ -2008,7 +2007,7 @@
                 showPage('homePage');
                 return;
             }
-            showPage({ home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' }[page]);
+            showPage({ home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', settings: 'settingsPage' }[page]);
             return;
         }
 
@@ -2028,12 +2027,6 @@
         if (target.closest('#authBtn')) {
             if (currentUser) logout();
             else openAuthModal();
-            return;
-        }
-
-        // Close help
-        if (target.closest('#closeHelpBtn')) {
-            showPage('homePage');
             return;
         }
 
@@ -2837,7 +2830,7 @@
         if (hash.indexOf('deal-') === 0) {
             var dealId = parseInt(hash.split('-')[1]);
             if (deals.find(function(d) { return d.id == dealId; })) {
-                ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].forEach(function(p) {
+                ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage'].forEach(function(p) {
                     var el = document.getElementById(p);
                     if (el) el.classList.add('hidden-page');
                 });
@@ -2848,7 +2841,7 @@
             } else {
                 showPage('homePage');
             }
-        } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].indexOf(hash) !== -1) {
+        } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage'].indexOf(hash) !== -1) {
             if (hash === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) { hash = 'homePage'; }
             if (hash === 'settingsPage' && !currentUser) { hash = 'homePage'; }
             showPage(hash);
