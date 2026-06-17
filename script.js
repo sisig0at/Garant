@@ -1339,6 +1339,14 @@
             } else {
                 var email = emailInp ? emailInp.value.trim() : '';
                 var pwdConfirm = passConfirmInp ? passConfirmInp.value.trim() : '';
+                var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailRegex.test(email)) {
+                    if (errEl) {
+                        errEl.innerText = 'Введите корректный Email адрес (например, user@example.com)!';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
                 if (pwd !== pwdConfirm) {
                     if (errEl) {
                         errEl.innerText = 'Пароли не совпадают!';
