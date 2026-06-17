@@ -950,12 +950,34 @@
             '<div class="stat-card">Сделок (реальных): ' + realDealsCount + '</div>';
 
         // Paginated user list from local users array
+        renderAdminUsersList();
+
+        await renderAdminDeals();
+        renderAdminTickets();
+        if (adminCurrentTicketId) {
+            renderAdminTicketChat(adminCurrentTicketId);
+        } else {
+            var adminChatArea = document.getElementById('adminTicketChatArea');
+            if (adminChatArea) adminChatArea.style.display = 'none';
+        }
+    }
+
+    function renderAdminUsersList(searchQuery) {
+        var filteredUsers = users;
+        if (searchQuery && searchQuery.trim() !== '') {
+            var q = searchQuery.trim().toLowerCase();
+            filteredUsers = users.filter(function(u) {
+                return (u.login && u.login.toLowerCase().includes(q)) ||
+                       (u.nickname && u.nickname.toLowerCase().includes(q)) ||
+                       (u.email && u.email.toLowerCase().includes(q));
+            });
+        }
         let userListDiv = document.getElementById('userListAdmin');
         if (userListDiv) {
             var itemsPerPage = 10;
             var startIndex = (window.adminCurrentUsersPage - 1) * itemsPerPage;
             var endIndex = startIndex + itemsPerPage;
-            var pageUsers = users.slice(startIndex, endIndex);
+            var pageUsers = filteredUsers.slice(startIndex, endIndex);
 
             userListDiv.innerHTML = pageUsers.map(function(u) {
                 return '<div style="background:rgba(15,12,22,0.7);margin:6px 0;padding:10px 14px;border-radius:10px;border:1px solid rgba(139,92,246,0.08);display:flex;justify-content:space-between;align-items:center;">' +
@@ -976,16 +998,7 @@
                 '</div>';
             }).join('');
 
-            renderUsersPagination(users.length);
-        }
-
-        await renderAdminDeals();
-        renderAdminTickets();
-        if (adminCurrentTicketId) {
-            renderAdminTicketChat(adminCurrentTicketId);
-        } else {
-            var adminChatArea = document.getElementById('adminTicketChatArea');
-            if (adminChatArea) adminChatArea.style.display = 'none';
+            renderUsersPagination(filteredUsers.length);
         }
     }
 
@@ -1340,12 +1353,12 @@
         if (!feedDiv || !data) return;
         if (data.length > 0) {
             data.slice().reverse().forEach(function(d) {
-                var entry = escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+                var entry = { id: d.id, text: escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString() };
                 lastDealsFeedArray.unshift(entry);
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             });
             feedDiv.innerHTML = data.slice().reverse().map(function(d) {
-                return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                return '<div id="deal-card-' + d.id + '" class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
                     '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.seller)) + '</span> завершили сделку</div>' +
                     '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
                 '</div>';
@@ -1365,12 +1378,12 @@
         // Add to feed
         var feedDiv = document.getElementById('liveDealsFeed');
         if (!feedDiv) return;
-        var entry = escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+        var entry = { id: d.id, text: escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString() };
         lastDealsFeedArray.unshift(entry);
         if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
         feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-            return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
-                '<div>⚡ ' + t + '</div>' +
+            return '<div id="deal-card-' + t.id + '" class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                '<div>⚡ ' + t.text + '</div>' +
             '</div>';
         }).join('');
     }
@@ -1440,9 +1453,6 @@
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала deal-status:', status);
             });
-
-        // ---- Канал для ленты сделок (фейки + закрытые реальные) ----
-        initDealsRealtime();
 
         // ---- Канал для чата сделок ----
         sb.channel('deal-messages')
@@ -2309,11 +2319,11 @@
         // Прямое обновление ленты последних сделок (дублирует Realtime для надёжности)
         var feedDiv = document.getElementById('liveDealsFeed');
         if (feedDiv) {
-            var entry = escapeHtml(anonymizeName(deal.seller)) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(deal.buyer)) + ' — ' + new Date().toLocaleTimeString();
+            var entry = { id: deal.id, text: escapeHtml(anonymizeName(deal.seller)) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(deal.buyer)) + ' — ' + new Date().toLocaleTimeString() };
             lastDealsFeedArray.unshift(entry);
             if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-                return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
+                return '<div id="deal-card-' + t.id + '"><i class="fas fa-exchange-alt"></i> ' + t.text + '</div>';
             }).join('');
         }
 
@@ -2870,6 +2880,34 @@
             });
         }
 
+        // Admin users search
+        var adminUsersSearch = document.getElementById('admin-users-search');
+        if (adminUsersSearch) {
+            adminUsersSearch.addEventListener('input', function() {
+                window.adminCurrentUsersPage = 1;
+                renderAdminUsersList(this.value);
+            });
+        }
+
         initApp();
     });
+
+    window.addNewDealToFeedUI = addNewDealToFeedUI;
 })();
+
+/* ===== Глобальный канал deals (вне IIFE) ===== */
+if (!window._dealsRealtimeGlobalInitialized) {
+    window._dealsRealtimeGlobalInitialized = true;
+
+    supabase
+        .channel('global-deals-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
+            var isDuplicate = document.getElementById('deal-card-' + payload.new.id);
+            if (!isDuplicate) {
+                window.addNewDealToFeedUI(payload.new);
+            }
+        })
+        .subscribe(function(status) {
+            console.log('[Realtime] Глобальный канал статус:', status);
+        });
+}
