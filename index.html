@@ -162,6 +162,7 @@
                     <div class="message message-bot"><i class="fas fa-robot"></i> Добро пожаловать в чат поддержки. Напишите вопрос или выберите быстрый запрос.</div>
                 </div>
                 <div class="fake-img" style="margin-top:15px; height:60px;"><i class="fas fa-clock"></i> Среднее время ответа: 24 секунды</div>
+                <div id="user-support-admins-online" style="font-size:13px;color:#34d399;margin-top:5px;font-weight:500;">🟢 Операторов поддержки в сети: <span id="fake-admins-count">1</span></div>
             </div>
             <div class="card">
                 <div style="display: flex; justify-content: center; margin-bottom: 20px;">
@@ -256,6 +257,7 @@
 
                 <!-- Tab: Platform Settings -->
                 <div id="admin-tab-platform" class="hidden">
+                    <div style="font-size:14px;color:#a78bfa;margin-bottom:15px;">📊 Реально администраторов в сети: <span id="real-admins-count-val" style="color:#fff;font-weight:bold;">1</span></div>
                     <h4>Управление сайтом</h4>
                     <div style="display:flex;flex-direction:column;gap:12px;">
                         <div style="display:flex;gap:10px;align-items:center;"><input type="number" id="fakeOnlineVal" placeholder="Новое значение онлайна юзеров..." style="flex:1;height:42px;background:#0d0b14;border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:0 16px;color:#fff;font-size:14px;outline:none;"><button id="setOnline" style="padding:10px 20px;background:#7c3aed;color:white;border:none;border-radius:8px;cursor:pointer;">Установить онлайн</button></div>

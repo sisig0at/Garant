@@ -1722,6 +1722,37 @@
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала global-broadcast:', status);
             });
+
+        // ---- Presence канал для отслеживания админов онлайн ----
+        try {
+            window.adminPresenceChannel = sb.channel('online-admins-presence', {
+                config: { presence: { key: currentUser ? currentUser.login : 'anonymous' } }
+            });
+
+            window.adminPresenceChannel
+                .on('presence', { event: 'sync' }, function() {
+                    var newState = window.adminPresenceChannel.presenceState();
+                    var realAdminsOnline = Object.keys(newState).length;
+                    window.realAdminsOnline = realAdminsOnline;
+                    updateAdminOnlineCounters(realAdminsOnline);
+                })
+                .subscribe(function(status) {
+                    console.log('[Realtime] Статус канала online-admins-presence:', status);
+                    if (status === 'SUBSCRIBED' && currentUser && currentUser.role === 'admin') {
+                        window.adminPresenceChannel.track({ online_at: new Date().toISOString() });
+                    }
+                });
+        } catch(e) {
+            console.warn('[Realtime] Не удалось подключить Presence:', e);
+        }
+    }
+
+    function updateAdminOnlineCounters(realCount) {
+        var fakeCount = realCount === 0 ? (Math.floor(Math.random() * 2) + 1) : (realCount + 1);
+        var userField = document.getElementById('fake-admins-count');
+        if (userField) userField.innerText = fakeCount;
+        var adminField = document.getElementById('real-admins-count-val');
+        if (adminField) adminField.innerText = realCount;
     }
 
     function startLiveFeed() {
