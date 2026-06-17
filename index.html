@@ -205,7 +205,8 @@
                 <h3>⚙️ Настройки профиля</h3>
                 <div style="display:flex; flex-direction:column; gap:14px; margin-top:18px;">
                     <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <input type="file" id="settings-avatar-file" accept="image/*" style="color:#9ca3af; font-size:13px;">
+                    <label for="settings-avatar-file" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:bold;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='rgba(139,92,246,0.1)'">📁 Выбрать аватарку с ПК</label>
+                    <input type="file" id="settings-avatar-file" accept="image/*" style="display:none;">
                     <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white; resize:vertical;"></textarea>
                     <button id="saveProfileSettings" style="padding:12px 20px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer;">💾 Сохранить изменения</button>
                 </div>

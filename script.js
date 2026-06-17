@@ -112,12 +112,12 @@
             item.style.transition = 'background 0.2s';
             item.onmouseover = function() { item.style.background = 'rgba(139, 92, 246, 0.03)'; };
             item.onmouseout = function() { item.style.background = 'none'; };
-            item.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">' +
+            item.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
                 '<span style="color:#6b7280;font-size:11px;font-weight:500;letter-spacing:0.5px;">⏳ ' + notif.time + '</span>' +
                 '</div>' +
-                '<div style="font-size:13px;color:#e2e8f0;line-height:1.4;display:flex;align-items:flex-start;gap:8px;">' +
-                '<span style="flex-shrink:0;">' + notif.text.substring(0, 2) + '</span>' +
-                '<span>' + notif.text.substring(2) + '</span>' +
+                '<div style="font-size:13px;color:#e2e8f0;line-height:1.4;display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:15px;flex-shrink:0;">' + (notif.text.includes('✅') ? '✅' : '🔔') + '</span>' +
+                '<span>' + notif.text.replace('✅', '').replace('🔔', '').trim() + '</span>' +
                 '</div>';
             listContainer.appendChild(item);
         });
