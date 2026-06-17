@@ -1187,12 +1187,20 @@
     }
 
     function renderSingleDealChat(dealId) {
-        let container = document.getElementById('singleDealChat');
+        var container = document.getElementById('singleDealChat');
         if (!container) return;
-        let messages = dealMessages[dealId] || [];
+        var messages = dealMessages[dealId] || [];
         container.innerHTML = messages.map(function(msg) {
-            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : (msg.system ? 'message-system' : 'message-bot');
-            return '<div class="message ' + cls + '"><strong>' + escapeHtml(msg.sender) + '</strong><br>' + escapeHtml(msg.text) +
+            if (msg.system) {
+                return '<div style="display:flex;justify-content:center;width:100%;margin:12px 0;">' +
+                    '<div style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 16px;font-size:13px;color:#c084fc;max-width:80%;text-align:center;line-height:1.4;">' +
+                        '🤖 <span style="font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;font-size:11px;margin-right:5px;">Система:</span> ' + escapeHtml(msg.text || msg.message) +
+                    '</div>' +
+                '</div>';
+            }
+            var displaySender = msg.sender === (currentUser ? currentUser.login : null) ? msg.sender : getDisplayName(msg.sender);
+            var cls = msg.sender === (currentUser ? currentUser.login : null) ? 'message-user' : 'message-bot';
+            return '<div class="message ' + cls + '"><strong>' + escapeHtml(displaySender) + '</strong><br>' + escapeHtml(msg.text) +
                 '<br><span style="font-size:10px; color:#aaa;">' + (msg.timestamp || '') + '</span></div>';
         }).join('');
         container.scrollTop = container.scrollHeight;
@@ -1224,10 +1232,28 @@
             return;
         }
         document.getElementById('singleDealTitle').innerHTML = 'Сделка #' + deal.id + ': ' + escapeHtml(deal.item) + ' (' + (deal.amount || 0).toLocaleString() + ' ₽)';
+        var maskedBuyer = maskPartnerName(deal.buyer);
+        var maskedSeller = maskPartnerName(deal.seller);
+        var dealStatusMap2 = {
+            'opened': { text: 'Открыта', color: '#60a5fa' },
+            'escrow': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
+            'escroy': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
+            'dispute': { text: 'Арбитраж / Спор', color: '#f87171' },
+            'completed': { text: 'Успешно завершена', color: '#34d399' },
+            'closed': { text: 'Закрыта', color: '#9ca3af' },
+            'cancelled': { text: 'Отменена', color: '#9ca3af' }
+        };
+        var currentStatus = dealStatusMap2[deal.status] || { text: deal.status, color: '#fff' };
         document.getElementById('singleDealDetails').innerHTML =
-            '<p><strong>Продавец:</strong> ' + escapeHtml(deal.seller) + '</p>' +
-            '<p><strong>Покупатель:</strong> ' + escapeHtml(deal.buyer) + '</p>' +
-            '<p><strong>Статус:</strong> ' + getStatusText(deal.status) + '</p>';
+            '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(139,92,246,0.15);border-radius:12px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;text-align:left;">' +
+                '<div style="font-size:14px;color:#9ca3af;display:flex;gap:20px;">' +
+                    '<div>🛒 Покупатель: <span style="color:#fff;font-weight:bold;">' + escapeHtml(maskedBuyer) + '</span></div>' +
+                    '<div>💼 Продавец: <span style="color:#fff;font-weight:bold;">' + escapeHtml(maskedSeller) + '</span></div>' +
+                '</div>' +
+                '<div style="font-size:14px;font-weight:bold;color:' + currentStatus.color + ';background:rgba(255,255,255,0.02);padding:4px 12px;border-radius:20px;border:1px solid ' + currentStatus.color + '44;">' +
+                    currentStatus.text +
+                '</div>' +
+            '</div>';
 
         let isActive = deal.status !== 'completed';
         let isBuyer = currentUser.login === deal.buyer;
