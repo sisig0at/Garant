@@ -696,6 +696,45 @@
         }
     }
 
+    async function checkAndSeedInitialFakeDeals() {
+        if (!currentUser || currentUser.role !== 'admin') return;
+        console.log('Проверка наличия фейковых сделок в базе...');
+        var existingRes = await sb.from('deals').select('id').eq('is_fake', true).limit(1);
+        if (existingRes.error) {
+            console.error('Ошибка при проверке сделок:', existingRes.error);
+            return;
+        }
+        if (!existingRes.data || existingRes.data.length === 0) {
+            console.log('База пуста! Запуск генерации 5 стартовых распределенных сделок...');
+            var now = Date.now();
+            var startFakeDeals = [];
+            var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
+            for (var i = 1; i <= 5; i++) {
+                var timeOffset = i * (Math.floor(Math.random() * (25 - 5 + 1)) + 5) * 60 * 1000;
+                var dealDate = new Date(now - timeOffset).toISOString();
+                var randBuyer = Math.floor(100000 + Math.random() * 900000);
+                var randSeller = Math.floor(100000 + Math.random() * 900000);
+                startFakeDeals.push({
+                    buyer: 'User#' + randBuyer,
+                    seller: 'User#' + randSeller,
+                    amount: Math.floor(Math.random() * 8500) + 300,
+                    item: items[Math.floor(Math.random() * items.length)],
+                    is_fake: true,
+                    status: 'completed',
+                    created_at: dealDate
+                });
+            }
+            var insertRes = await sb.from('deals').insert(startFakeDeals);
+            if (insertRes.error) {
+                console.error('Не удалось вставить стартовые сделки:', insertRes.error);
+            } else {
+                console.log('5 стартовых сделок успешно записаны в облако Supabase!');
+            }
+        } else {
+            console.log('Фейковые сделки уже есть в базе, генерация не требуется.');
+        }
+    }
+
     async function autoCleanFakeDeals() {
         if (!currentUser || currentUser.role !== 'admin') return;
         console.log('[AutoClean] Проверка фейковых сделок...');
@@ -774,6 +813,7 @@
 
     function startAdminAutoClean() {
         if (!currentUser || currentUser.role !== 'admin') return;
+        checkAndSeedInitialFakeDeals();
         autoCleanSupportTickets();
         autoCleanFakeDeals();
         // Запускаем генератор фейков только в сессии админа
