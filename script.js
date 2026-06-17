@@ -20,6 +20,7 @@
     let isLoginMode = true;
     let isDarkTheme = true;
     let systemStats = { total_deals: 0, total_turnover: 0 };
+    window.appNotifications = [];
     let adminUserPage = 1;
     let adminUserTotalCount = 0;
     let currentDealId = null;
@@ -59,26 +60,35 @@
     }
 
     function showNotification(text) {
+        window.appNotifications.unshift({ text: text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        if (window.appNotifications.length > 4) window.appNotifications.pop();
+        var list = document.getElementById('notifications-list');
+        if (list) {
+            list.innerHTML = window.appNotifications.map(function(n) {
+                return '<div style="padding:6px 8px; background:rgba(139,92,246,0.08); border-radius:6px;"><span style="color:#9ca3af; font-size:10px; margin-right:6px;">' + n.time + '</span>' + n.text + '</div>';
+            }).join('');
+        }
         var container = document.getElementById('toast-container');
-        if (!container) return;
-        var toast = document.createElement('div');
-        toast.style.cssText = 'background:#2a1a5a; color:#fff; padding:12px 16px; border-radius:8px; border-left:4px solid #c084fc; box-shadow:0 4px 12px rgba(0,0,0,0.3); min-width:280px; max-width:360px; opacity:0; transition:opacity 0.3s ease;';
-        toast.innerText = text;
-        container.appendChild(toast);
-        setTimeout(function() { toast.style.opacity = '1'; }, 10);
+        if (container) {
+            var toast = document.createElement('div');
+            toast.style.cssText = 'background:#2a1a5a; color:#fff; padding:12px 16px; border-radius:8px; border-left:4px solid #c084fc; box-shadow:0 4px 12px rgba(0,0,0,0.3); min-width:280px; max-width:360px; opacity:0; transition:opacity 0.3s ease;';
+            toast.innerText = text;
+            container.appendChild(toast);
+            setTimeout(function() { toast.style.opacity = '1'; }, 10);
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 4000);
+        }
         var badge = document.getElementById('bell-badge');
         if (badge) {
             var count = parseInt(badge.innerText) || 0;
             count++;
             badge.innerText = count;
             badge.style.display = 'inline';
-            var bell = document.getElementById('notification-bell');
-            if (bell) bell.style.display = 'inline-block';
+            var bellContainer = document.getElementById('notification-bell-container');
+            if (bellContainer) bellContainer.style.display = 'flex';
         }
-        setTimeout(function() {
-            toast.style.opacity = '0';
-            setTimeout(function() { toast.remove(); }, 300);
-        }, 4000);
     }
 
     function escapeHtml(str) {
@@ -1267,6 +1277,22 @@
                 if (!d.is_fake && d.status !== 'completed') return;
                 if (payload.eventType === 'UPDATE' && payload.old && payload.old.status === 'completed' && !payload.old.is_fake) return;
                 console.log('[Realtime] Новая сделка в ленту:', d.id, 'is_fake:', d.is_fake, 'status:', d.status);
+                if (d.status === 'completed') {
+                    var amount = Number(d.amount);
+                    if (amount > 0) {
+                        systemStats.total_turnover = (systemStats.total_turnover || 0) + amount;
+                        if (payload.eventType === 'INSERT') {
+                            systemStats.total_deals = (systemStats.total_deals || 0) + 1;
+                        }
+                        var totalEl = document.getElementById('totalVolume');
+                        if (totalEl) {
+                            totalEl.innerText = systemStats.total_turnover.toLocaleString('ru-RU') + ' ₽';
+                        }
+                    }
+                    if (payload.eventType === 'UPDATE') {
+                        showNotification('✅ Сделка успешно завершена');
+                    }
+                }
                 var feedDiv = document.getElementById('liveDealsFeed');
                 if (!feedDiv) return;
                 var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
@@ -1293,6 +1319,7 @@
                     if (!exists) {
                         dealMessages[msg.deal_id].push(msg);
                         renderSingleDealChat(msg.deal_id);
+                        showNotification('💬 Сообщение в чате сделки');
                     }
                 }
             })
@@ -1371,7 +1398,7 @@
         // ---- Глобальный канал для массовой рассылки ----
         sb.channel('global-broadcast')
             .on('broadcast', { event: 'broadcast' }, function(payload) {
-                showToast('📢 ' + payload.message);
+                showNotification('📢 ' + payload.message);
             })
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала global-broadcast:', status);
@@ -2582,17 +2609,28 @@
                 }
             });
         }
-        // Клик по колокольчику — сброс уведомлений
-        var bell = document.getElementById('notification-bell');
-        if (bell) {
-            bell.addEventListener('click', function() {
+        // Клик по колокольчику — toggle выпадающего меню
+        var bellContainer = document.getElementById('notification-bell-container');
+        if (bellContainer) {
+            bellContainer.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var dropdown = document.getElementById('notification-dropdown');
                 var badge = document.getElementById('bell-badge');
-                if (badge) {
-                    badge.innerText = '0';
-                    badge.style.display = 'none';
+                if (dropdown) {
+                    var isOpen = dropdown.style.display === 'flex';
+                    dropdown.style.display = isOpen ? 'none' : 'flex';
+                    if (!isOpen && badge) {
+                        badge.innerText = '0';
+                        badge.style.display = 'none';
+                    }
                 }
             });
         }
+        // Закрытие меню при клике вне
+        document.addEventListener('click', function() {
+            var dropdown = document.getElementById('notification-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        });
         initApp();
     });
 })();
