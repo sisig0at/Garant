@@ -129,10 +129,10 @@
             item.onmouseover = function() { item.style.background = 'rgba(139, 92, 246, 0.03)'; };
             item.onmouseout = function() { item.style.background = 'none'; };
             item.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-                '<span style="color:#6b7280;font-size:11px;font-weight:500;letter-spacing:0.5px;">⏳ ' + notif.time + '</span>' +
+                '<span style="color:#6b7280;font-size:11px;font-weight:500;letter-spacing:0.5px;"><i class="fas fa-clock" style="margin-right:4px;color:#a78bfa;"></i> ' + notif.time + '</span>' +
                 '</div>' +
                 '<div style="font-size:13px;color:#e2e8f0;line-height:1.4;display:flex;align-items:center;gap:8px;">' +
-                '<span style="font-size:15px;flex-shrink:0;">' + (notif.text.includes('✅') ? '✅' : '🔔') + '</span>' +
+                '<span style="font-size:15px;flex-shrink:0;"><i class="fas fa-bell" style="color:#a78bfa;"></i></span>' +
                 '<span>' + notif.text.replace('✅', '').replace('🔔', '').trim() + '</span>' +
                 '</div>';
             listContainer.appendChild(item);
@@ -229,10 +229,10 @@
         var seedReviews = [
             { user_login: 'zeiten', rating: 5, text: 'Отличный сервис, провёл сделку на 50к всё супер быстро!', date: '2026-06-01' },
             { user_login: 'Monter', rating: 5, text: 'Лучший гарант в СНГ сегменте, комиссии минимальные.', date: '2026-06-01' },
-            { user_login: 'milawka38', rating: 5, text: 'Быстро ответили в поддержке, помогли разобраться с выводом.', date: '2026-06-01' },
+            { user_login: 'milawka38', rating: 4, text: 'Сначала залагало пополнение через СБП, испугалась. Но поддержка ответила за 30 секунд и всё зачислила вручную! Сервис надёжный, но за лаг ставлю 4 звезды.', date: '2026-06-01' },
             { user_login: '777', rating: 5, text: 'Работаю тут на постоянной основе, холдирование работает честно.', date: '2026-06-01' },
-            { user_login: 'Imprezza', rating: 5, text: 'Прекрасный неоновый дизайн и очень удобный личный кабинет.', date: '2026-06-01' },
-            { user_login: 'HeDViN', rating: 5, text: 'Все топ, вывели деньги на карту за 5 минут. Рекомендую!', date: '2026-06-01' }
+            { user_login: 'Imprezza', rating: 4, text: 'Дизайн топ, сделки безопасные. Была задержка на выводе крупных средств, пришлось пообщаться с арбитром. В итоге всё вывели. 4 звезды за ожидание, к безопасности вопросов нет.', date: '2026-06-01' },
+            { user_login: 'HeDViN', rating: 3, text: 'Долго не мог пройти верификацию почты, выдавало ошибку. Оператор в тикетах помог решить проблему. Сами сделки проходят отлично, ставлю 3 звезды чисто из-за багов с регистрацией.', date: '2026-06-01' }
         ];
         var existingLogins = reviews.map(function(r) { return r.user_login; });
         seedReviews.forEach(function(sr) {
@@ -1551,7 +1551,7 @@
             });
             feedDiv.innerHTML = data.slice().reverse().map(function(d) {
                 return '<div id="deal-card-' + d.id + '" class="feed-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0; cursor:default; user-select:none;">' +
-                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.seller)) + '</span> завершили сделку</div>' +
+                    '<div><i class="fas fa-bolt" style="color:#a78bfa;margin-right:8px;"></i><span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.seller)) + '</span> завершили сделку</div>' +
                     '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
                 '</div>';
             }).join('');
@@ -1575,7 +1575,7 @@
         if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
         feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
             return '<div id="deal-card-' + t.id + '" class="feed-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0; cursor:default; user-select:none;">' +
-                '<div>⚡ ' + t.text + '</div>' +
+                '<div><i class="fas fa-bolt" style="color:#a78bfa;margin-right:8px;"></i>' + t.text + '</div>' +
             '</div>';
         }).join('');
     }
@@ -2883,7 +2883,9 @@
         setTimeout(function() {
             document.body.style.visibility = 'visible';
             document.body.classList.add('loaded');
-        }, 1500);
+            var hero = document.querySelector('.hero-animation');
+            if (hero) hero.classList.add('fade-done');
+        }, 1600);
 
         console.log('[Init] Инициализация завершена');
     }
