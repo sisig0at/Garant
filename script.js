@@ -1465,7 +1465,11 @@
             });
 
         // ---- Глобальный канал для массовой рассылки ----
-        sb.channel('global-broadcast')
+        sb.channel('global-broadcast', {
+            config: {
+                broadcast: { self: true }
+            }
+        })
             .on('broadcast', { event: 'broadcast' }, function(payload) {
                 if (payload && (payload.message || payload.text)) {
                     var msg = payload.message || payload.text;
@@ -2477,6 +2481,7 @@
             event: 'broadcast',
             payload: { message: msg }
         });
+        showNotification('📢 Рассылка: ' + msg);
         showToast('📢 Рассылка отправлена всем пользователям');
         document.getElementById('broadcastMsg').value = '';
     }
