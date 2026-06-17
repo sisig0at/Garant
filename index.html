@@ -28,14 +28,25 @@
         </div>
         <div class="user-info">
             <i class="fas fa-user-circle"></i> <span id="userNameDisplay">Гость</span>
-            <div id="notification-bell-container" style="position:relative; margin-right:20px; display:none; align-items:center; cursor:pointer; z-index:10000;">
+            <div id="notification-bell-container" style="position:relative; margin-right:20px; align-items:center; cursor:pointer; z-index:10000; display:none;">
                 <span id="notification-bell" style="font-size:20px; user-select:none;">🔔</span>
-                <span id="bell-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:9999px; line-height:1;">0</span>
-                <div id="notification-dropdown" style="display:none; position:absolute; top:35px; right:0; width:280px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:10px; flex-direction:column; gap:8px;">
+                <span id="bell-badge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:9999px; line-height:1;">0</span>
+                <div id="notification-dropdown" class="hidden" style="position:absolute; top:35px; right:0; width:280px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:10px; flex-direction:column; gap:8px;">
                     <div style="font-size:12px; color:#9ca3af; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; font-weight:bold;">Последние уведомления</div>
                     <div id="notifications-list" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; font-size:12px; color:#e2e8f0;">
                         <div class="empty-notif-msg" style="color:#6b7280; text-align:center; padding:10px 0;">Уведомлений нет</div>
                     </div>
+                </div>
+            </div>
+            <div id="profile-menu-container" style="position:relative; display:none; align-items:center; cursor:pointer; z-index:10000;">
+                <img id="header-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" style="width:32px; height:32px; border-radius:50%; border:1px solid #a78bfa; margin-right:8px; background:#1e1b2e;">
+                <span id="header-nickname" style="color:#e2e8f0; font-size:14px; margin-right:5px;">Пользователь</span>
+                <span style="font-size:10px; color:#a78bfa;">▼</span>
+                <div id="profile-dropdown" class="hidden" style="position:absolute; top:40px; right:0; width:180px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:8px; flex-direction:column; gap:4px;">
+                    <button id="drop-btn-profile" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">👤 Профиль</button>
+                    <button id="drop-btn-settings" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">⚙️ Настройки</button>
+                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:4px 0;"></div>
+                    <button id="drop-btn-logout" style="background:none; border:none; color:#ef4444; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%; font-weight:bold;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">🚪 Выйти</button>
                 </div>
             </div>
             <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
@@ -168,7 +179,7 @@
         <div id="profilePage" class="hidden-page">
             <div class="card">
                 <div style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
-                    <div><i class="fas fa-user-circle fa-6x" style="color:#c084fc;"></i></div>
+                    <div><img id="profileAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" style="width:96px; height:96px; border-radius:50%; border:3px solid #c084fc; background:#1e1b2e;"></div>
                     <div>
                         <h2 id="profileName" style="font-size: 32px;"></h2>
                         <div id="profileBadge"></div>
@@ -182,6 +193,15 @@
                 <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
                     <button id="rechargeBalanceBtn"><i class="fas fa-plus-circle"></i> Пополнить</button>
                     <button id="withdrawBalanceBtn"><i class="fas fa-minus-circle"></i> Вывести</button>
+                </div>
+            </div>
+            <div class="card" id="profileSettings" style="margin-top:20px;">
+                <h3>⚙️ Настройки профиля</h3>
+                <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px;">
+                    <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
+                    <input type="text" id="settings-avatar" placeholder="URL аватарки (например, https://example.com/avatar.png)" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
+                    <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white; resize:vertical;"></textarea>
+                    <button id="saveProfileSettings" style="padding:10px 20px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer;">💾 Сохранить изменения</button>
                 </div>
             </div>
         </div>
@@ -273,7 +293,7 @@
 </div>
 
 <!-- МОДАЛЬНЫЕ ОКНА -->
-<div id="authModal" class="modal"><div class="modal-content"><h3 id="authTitle">Вход</h3><input id="login-identifier" placeholder="Логин или Email"><input id="reg-email" type="email" placeholder="Введите Email" style="display:none;"><input id="authPass" type="password" placeholder="Пароль"><input id="reg-password-confirm" type="password" placeholder="Повторите пароль" style="display:none;"><div id="authError" class="auth-error" style="display:none;"></div><button id="authSubmit" style="width:100%; margin-top:10px;">Войти</button><div style="margin-top:15px; text-align:center;"><button id="switchAuth" style="background:none; border:none; color:#c084fc; cursor:pointer; text-decoration:underline;">Нет аккаунта? Регистрация</button></div><button id="closeAuth" style="margin-top:15px; background:#2a1a5a; width:100%;">Закрыть</button></div></div>
+<div id="authModal" class="modal"><div class="modal-content"><h3 id="authTitle">Вход</h3><input id="login-identifier" placeholder="Логин или Email"><input type="text" id="reg-nickname" placeholder="Отображаемый Никнейм (Публичный)" required style="display:none; padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;"><input id="reg-email" type="email" placeholder="Введите Email" style="display:none;"><input id="authPass" type="password" placeholder="Пароль"><input id="reg-password-confirm" type="password" placeholder="Повторите пароль" style="display:none;"><div id="authError" class="auth-error" style="display:none;"></div><button id="authSubmit" style="width:100%; margin-top:10px;">Войти</button><div style="margin-top:15px; text-align:center;"><button id="switchAuth" style="background:none; border:none; color:#c084fc; cursor:pointer; text-decoration:underline;">Нет аккаунта? Регистрация</button></div><button id="closeAuth" style="margin-top:15px; background:#2a1a5a; width:100%;">Закрыть</button></div></div>
 <div id="reviewModal" class="modal"><div class="modal-content"><h3>Ваш отзыв</h3><select id="revRating"><option value="5">5★</option><option value="4">4★</option><option value="3">3★</option><option value="2">2★</option><option value="1">1★</option></select><textarea id="revText" rows="3"></textarea><button id="submitReview">Оставить</button><button id="closeRev">Отмена</button></div></div>
 <div id="ratingModal" class="modal"><div class="modal-content"><h3>Оцените сделку</h3><p id="ratingDealInfo"></p><select id="ratingStars"><option value="5">5 ★ — Отлично</option><option value="4">4 ★ — Хорошо</option><option value="3">3 ★ — Нормально</option><option value="2">2 ★ — Плохо</option><option value="1">1 ★ — Ужасно</option></select><textarea id="ratingText" rows="3" placeholder="Напишите отзыв о продавце (необязательно)"></textarea><button id="submitRating">Отправить оценку</button><button id="closeRating">Пропустить</button></div></div>
 <div id="rechargeModal" class="modal"><div class="modal-content" style="text-align:center;"><h3>Пополнение баланса</h3><div class="recharge-banks" style="display:flex; flex-direction:column; gap:12px; margin:20px 0;"><button class="bank-btn" data-method="sber">СБЕР</button><button class="bank-btn" data-method="tbank">Т-Банк</button><button class="bank-btn" data-method="vtb">ВТБ</button><button id="cryptoRechargeBtn" class="bank-btn" style="background:#6d28d9;">Криптовалюта</button></div><div id="cryptoOptions" style="display:none; gap:12px; flex-direction:column; margin-bottom:20px;"><button class="crypto-btn" data-crypto="usdt">USDT (TRC20)</button><button class="crypto-btn" data-crypto="btc">BTC</button><button class="crypto-btn" data-crypto="eth">ETH</button></div><button id="closeRecharge" style="margin-top:15px;">Закрыть</button></div></div>

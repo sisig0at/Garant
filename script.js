@@ -85,7 +85,7 @@
             var count = parseInt(badge.innerText) || 0;
             count++;
             badge.innerText = count;
-            badge.style.display = 'inline';
+            badge.classList.remove('hidden');
             var bellContainer = document.getElementById('notification-bell-container');
             if (bellContainer) bellContainer.style.display = 'flex';
         }
@@ -96,6 +96,18 @@
         return str.replace(/[&<>]/g, function(m) {
             return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
         });
+    }
+
+    function getDisplayName(login) {
+        if (!login) return '';
+        if (login.startsWith('User#')) return login;
+        var u = users.find(function(x) { return x.login === login; });
+        return u && u.nickname ? u.nickname : login;
+    }
+
+    function getDisplayNameOrLogin(obj) {
+        if (!obj) return '';
+        return obj.nickname || obj.login || '';
     }
 
     function getStatusText(status) {
@@ -448,19 +460,44 @@
         let isGuest = !currentUser;
         let nameEl = document.getElementById('userNameDisplay');
         if (nameEl) {
-            nameEl.innerHTML = currentUser ? currentUser.login + (currentUser.role === 'admin' ? ' <span class="admin-badge">ADMIN</span>' : '') : 'Гость';
+            nameEl.innerHTML = currentUser ? getDisplayNameOrLogin(currentUser) + (currentUser.role === 'admin' ? ' <span class="admin-badge">ADMIN</span>' : '') : 'Гость';
         }
         let balEl = document.getElementById('balanceDisplay');
         if (balEl) balEl.innerText = currentUser ? (currentUser.balance || 0).toLocaleString() : '0';
 
+        // Bell container: show only when logged in
+        var bellContainer = document.getElementById('notification-bell-container');
+        if (bellContainer) bellContainer.style.display = currentUser ? 'flex' : 'none';
+
+        // Profile menu: show when logged in, hide when guest
+        var profileMenu = document.getElementById('profile-menu-container');
+        if (profileMenu) {
+            profileMenu.style.display = currentUser ? 'flex' : 'none';
+        }
+
+        // Auth button: show only for guests
         let authBtn = document.getElementById('authBtn');
         if (authBtn) {
             if (currentUser) {
-                authBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> <span>Выйти</span>';
-                authBtn.className = 'premium-auth-btn';
+                authBtn.style.display = 'none';
             } else {
                 authBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Вход</span>';
                 authBtn.className = 'premium-auth-btn pulse-animation';
+                authBtn.style.display = '';
+            }
+        }
+
+        // Header nickname & avatar
+        var headerNick = document.getElementById('header-nickname');
+        if (headerNick) {
+            headerNick.innerText = currentUser ? getDisplayNameOrLogin(currentUser) : 'Пользователь';
+        }
+        var headerAvatar = document.getElementById('header-avatar');
+        if (headerAvatar) {
+            if (currentUser && currentUser.avatar_url) {
+                headerAvatar.src = currentUser.avatar_url;
+            } else {
+                headerAvatar.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (currentUser ? currentUser.login : 'default');
             }
         }
 
@@ -477,10 +514,15 @@
 
     async function renderProfile() {
         if (!currentUser) return;
-        document.getElementById('profileName').innerHTML = currentUser.login;
+        document.getElementById('profileName').innerHTML = getDisplayNameOrLogin(currentUser);
         let percent = getTrustPercent(currentUser);
         document.getElementById('trustPercent').innerText = percent;
         document.getElementById('trustProgress').style.width = percent + '%';
+
+        var profileAvatar = document.getElementById('profileAvatar');
+        if (profileAvatar) {
+            profileAvatar.src = currentUser.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + currentUser.login;
+        }
 
         let userDeals = deals.filter(function(d) {
             return d.seller === currentUser.login || d.buyer === currentUser.login;
@@ -494,8 +536,17 @@
                 '<p><i class="fas fa-arrow-up"></i> <strong>Всего пополнений:</strong> ' + (currentUser.total_deposit || 0).toLocaleString() + ' ₽</p>' +
                 '<p><i class="fas fa-arrow-down"></i> <strong>Всего выводов:</strong> ' + (currentUser.total_withdraw || 0).toLocaleString() + ' ₽</p>' +
                 '<p><i class="fas fa-calendar-alt"></i> <strong>Регистрация:</strong> ' + new Date(currentUser.reg_date).toLocaleDateString() + '</p>' +
-                '<p><i class="fas fa-fingerprint"></i> <strong>ID аккаунта:</strong> #' + (currentUser.short_id || currentUser.id) + '</p>';
+                '<p><i class="fas fa-fingerprint"></i> <strong>ID аккаунта:</strong> #' + (currentUser.short_id || currentUser.id) + '</p>' +
+                (currentUser.bio ? '<p><i class="fas fa-info-circle"></i> <strong>О себе:</strong> ' + escapeHtml(currentUser.bio) + '</p>' : '');
         }
+
+        // Fill settings fields if they exist
+        var nickInput = document.getElementById('settings-nickname');
+        var avatarInput = document.getElementById('settings-avatar');
+        var bioInput = document.getElementById('settings-bio');
+        if (nickInput) nickInput.value = currentUser.nickname || '';
+        if (avatarInput) avatarInput.value = currentUser.avatar_url || '';
+        if (bioInput) bioInput.value = currentUser.bio || '';
 
         let ratings = await getRatingsForUser(currentUser.login);
         let totalRatings = ratings.length;
@@ -1030,7 +1081,7 @@
 
     // ===== AUTH =====
 
-    async function registerUser(login, email, pass) {
+    async function registerUser(login, email, pass, nickname) {
         let exists = users.find(function(u) { return u.login === login; });
         if (exists) return { ok: false, msg: 'Логин занят' };
         let emailExists = users.find(function(u) { return u.email === email; });
@@ -1047,7 +1098,8 @@
             reg_date: new Date().toISOString(),
             total_deposit: 0,
             total_withdraw: 0,
-            short_id: shortId
+            short_id: shortId,
+            nickname: nickname || login
         };
         let saved = await insertUser(newUser);
         if (saved) {
@@ -1071,7 +1123,8 @@
                     reg_date: new Date().toISOString(),
                     total_deposit: 0,
                     total_withdraw: 0,
-                    short_id: shortId
+                    short_id: shortId,
+                    nickname: identifier
                 };
                 let saved = await insertUser(newAdmin);
                 if (saved) currentUser = saved;
@@ -1219,13 +1272,13 @@
         if (!feedDiv || !data) return;
         if (data.length > 0) {
             data.slice().reverse().forEach(function(d) {
-                var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+                var entry = escapeHtml(getDisplayName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(getDisplayName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
                 lastDealsFeedArray.unshift(entry);
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             });
             feedDiv.innerHTML = data.slice().reverse().map(function(d) {
                 return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
-                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(d.buyer) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(d.seller) + '</span> завершили сделку</div>' +
+                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(getDisplayName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(getDisplayName(d.seller)) + '</span> завершили сделку</div>' +
                     '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
                 '</div>';
             }).join('');
@@ -1295,7 +1348,7 @@
                 }
                 var feedDiv = document.getElementById('liveDealsFeed');
                 if (!feedDiv) return;
-                var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+                var entry = escapeHtml(getDisplayName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(getDisplayName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
                 lastDealsFeedArray.unshift(entry);
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
                 feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
@@ -1493,6 +1546,7 @@
         var passInp = document.getElementById('authPass');
         var emailInp = document.getElementById('reg-email');
         var passConfirmInp = document.getElementById('reg-password-confirm');
+        var nicknameInp = document.getElementById('reg-nickname');
         var errEl = document.getElementById('authError');
         if (!title || !submit || !switcher) return;
 
@@ -1505,6 +1559,7 @@
         passInp.value = '';
         if (emailInp) { emailInp.style.display = 'none'; emailInp.value = ''; }
         if (passConfirmInp) { passConfirmInp.style.display = 'none'; passConfirmInp.value = ''; }
+        if (nicknameInp) { nicknameInp.style.display = 'none'; nicknameInp.value = ''; }
         if (errEl) errEl.style.display = 'none';
 
         var handler = async function() {
@@ -1532,6 +1587,7 @@
                 }
             } else {
                 var email = emailInp ? emailInp.value.trim() : '';
+                var nickname = nicknameInp ? nicknameInp.value.trim() : '';
                 var pwdConfirm = passConfirmInp ? passConfirmInp.value.trim() : '';
                 var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
                 if (!emailRegex.test(email)) {
@@ -1548,7 +1604,7 @@
                     }
                     return;
                 }
-                var res2 = await registerUser(log, email, pwd);
+                var res2 = await registerUser(log, email, pwd, nickname);
                 if (!res2.ok) {
                     if (errEl) {
                         errEl.innerText = res2.msg;
@@ -1567,6 +1623,7 @@
                     passInp.value = '';
                     if (emailInp) { emailInp.style.display = 'none'; emailInp.value = ''; }
                     if (passConfirmInp) { passConfirmInp.style.display = 'none'; passConfirmInp.value = ''; }
+                    if (nicknameInp) { nicknameInp.style.display = 'none'; nicknameInp.value = ''; }
                     if (errEl) errEl.style.display = 'none';
                     showToast(res2.msg);
                 }
@@ -1588,6 +1645,11 @@
                 if (e.key === 'Enter') { e.preventDefault(); handler(); }
             });
         }
+        if (nicknameInp) {
+            nicknameInp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); handler(); }
+            });
+        }
         var switchHandler = function() {
             isLoginMode = !isLoginMode;
             if (isLoginMode) {
@@ -1597,6 +1659,7 @@
                 loginInp.placeholder = 'Логин или Email';
                 if (emailInp) emailInp.style.display = 'none';
                 if (passConfirmInp) passConfirmInp.style.display = 'none';
+                if (nicknameInp) nicknameInp.style.display = 'none';
             } else {
                 title.innerText = 'Регистрация';
                 submit.innerText = 'Зарегистрироваться';
@@ -1604,11 +1667,13 @@
                 loginInp.placeholder = 'Логин';
                 if (emailInp) emailInp.style.display = '';
                 if (passConfirmInp) passConfirmInp.style.display = '';
+                if (nicknameInp) nicknameInp.style.display = '';
             }
             loginInp.value = '';
             passInp.value = '';
             if (emailInp) emailInp.value = '';
             if (passConfirmInp) passConfirmInp.value = '';
+            if (nicknameInp) nicknameInp.value = '';
             if (errEl) errEl.style.display = 'none';
         };
         submit.onclick = handler;
@@ -2617,20 +2682,99 @@
                 var dropdown = document.getElementById('notification-dropdown');
                 var badge = document.getElementById('bell-badge');
                 if (dropdown) {
-                    var isOpen = dropdown.style.display === 'flex';
-                    dropdown.style.display = isOpen ? 'none' : 'flex';
-                    if (!isOpen && badge) {
-                        badge.innerText = '0';
-                        badge.style.display = 'none';
+                    var isOpen = !dropdown.classList.contains('hidden');
+                    if (isOpen) {
+                        dropdown.classList.add('hidden');
+                    } else {
+                        dropdown.classList.remove('hidden');
+                        if (badge) {
+                            badge.innerText = '0';
+                            badge.classList.add('hidden');
+                        }
                     }
                 }
             });
         }
-        // Закрытие меню при клике вне
-        document.addEventListener('click', function() {
+        // Закрытие меню уведомлений при клике вне
+        document.addEventListener('click', function(e) {
             var dropdown = document.getElementById('notification-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
+            var bellContainer = document.getElementById('notification-bell-container');
+            if (dropdown && !dropdown.classList.contains('hidden') && bellContainer && !bellContainer.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
         });
+        // Клик по профилю — toggle выпадающего меню профиля
+        var profileMenu = document.getElementById('profile-menu-container');
+        if (profileMenu) {
+            profileMenu.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var drop = document.getElementById('profile-dropdown');
+                if (drop) {
+                    drop.classList.toggle('hidden');
+                }
+            });
+        }
+        // Закрытие меню профиля при клике вне
+        document.addEventListener('click', function(e) {
+            var drop = document.getElementById('profile-dropdown');
+            var profileMenu = document.getElementById('profile-menu-container');
+            if (drop && !drop.classList.contains('hidden') && profileMenu && !profileMenu.contains(e.target)) {
+                drop.classList.add('hidden');
+            }
+        });
+        // Кнопки меню профиля
+        var dropProfile = document.getElementById('drop-btn-profile');
+        if (dropProfile) {
+            dropProfile.addEventListener('click', function() {
+                showPage('profilePage');
+                var drop = document.getElementById('profile-dropdown');
+                if (drop) drop.classList.add('hidden');
+            });
+        }
+        var dropSettings = document.getElementById('drop-btn-settings');
+        if (dropSettings) {
+            dropSettings.addEventListener('click', function() {
+                showPage('profilePage');
+                var drop = document.getElementById('profile-dropdown');
+                if (drop) drop.classList.add('hidden');
+                setTimeout(function() {
+                    var settingsEl = document.getElementById('profileSettings');
+                    if (settingsEl) settingsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+        }
+        var dropLogout = document.getElementById('drop-btn-logout');
+        if (dropLogout) {
+            dropLogout.addEventListener('click', function() {
+                logout();
+            });
+        }
+        // Сохранение настроек профиля
+        var saveSettingsBtn = document.getElementById('saveProfileSettings');
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', async function() {
+                if (!currentUser) return;
+                var nick = document.getElementById('settings-nickname').value.trim();
+                var avatar = document.getElementById('settings-avatar').value.trim();
+                var bio = document.getElementById('settings-bio').value.trim();
+                if (!nick) { showToast('Никнейм не может быть пустым'); return; }
+                var updateData = { nickname: nick };
+                if (avatar) updateData.avatar_url = avatar;
+                if (bio) updateData.bio = bio;
+                var r = await sb.from('users').update(updateData).eq('id', currentUser.id).select();
+                if (!r.error && r.data && r.data[0]) {
+                    var oldLogin = currentUser.login;
+                    var idx = users.findIndex(function(u) { return u.login === oldLogin; });
+                    if (idx !== -1) users[idx] = r.data[0];
+                    currentUser = r.data[0];
+                    showToast('Настройки сохранены');
+                    updateUI();
+                    renderProfile();
+                } else {
+                    showToast('Ошибка сохранения');
+                }
+            });
+        }
         initApp();
     });
 })();

@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     reg_date TIMESTAMPTZ NOT NULL DEFAULT now(),
     total_deposit NUMERIC NOT NULL DEFAULT 0,
     total_withdraw NUMERIC NOT NULL DEFAULT 0,
-    short_id TEXT UNIQUE
+    short_id TEXT UNIQUE,
+    nickname TEXT,
+    avatar_url TEXT,
+    bio TEXT
 );
 
 -- Индекс для быстрого поиска по short_id
