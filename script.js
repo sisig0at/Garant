@@ -1290,6 +1290,8 @@
 
     async function loadInitialDeals() {
         console.log("Вызов loadInitialDeals (пассивная загрузка, без INSERT)...");
+        var feedEl = document.getElementById('liveDealsFeed');
+        if (feedEl) feedEl.innerHTML = '';
         const { data, error } = await sb
             .from('deals')
             .select('*')
@@ -1328,6 +1330,11 @@
     }
 
     function setupRealtimeSubscriptions() {
+        if (window._dealsRealtimeSubscribed) {
+            console.log('[Realtime] Подписки уже запущены, пропускаем.');
+            return;
+        }
+        window._dealsRealtimeSubscribed = true;
         // ---- Канал для обновления баланса ----
         if (currentUser) {
             sb.channel('user-balance')
