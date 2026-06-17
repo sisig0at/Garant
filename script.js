@@ -2,6 +2,19 @@
     'use strict';
 
     if (typeof supabase === 'undefined' || typeof SUPABASE_CONFIG === 'undefined') return;
+
+    // Принудительная очистка старого небезопасного аккаунта с ID 1
+    try {
+        var _old = localStorage.getItem('vg_user');
+        if (_old) {
+            var _parsed = JSON.parse(_old);
+            if (_parsed.id == 1) {
+                localStorage.clear();
+                console.log("Старый небезопасный аккаунт с ID 1 принудительно стерт из localStorage.");
+            }
+        }
+    } catch(e) {}
+
     const sb = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
         auth: {
             persistSession: true,
@@ -3225,22 +3238,29 @@
         initApp();
     });
 
+    window._sb = sb;
     window.addNewDealToFeedUI = addNewDealToFeedUI;
 })();
 
 /* ===== Глобальный канал deals (вне IIFE) ===== */
-if (!window._dealsRealtimeGlobalInitialized) {
-    window._dealsRealtimeGlobalInitialized = true;
+try {
+    if (!window._dealsRealtimeGlobalInitialized) {
+        window._dealsRealtimeGlobalInitialized = true;
 
-    supabase
-        .channel('global-deals-channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
-            var isDuplicate = document.getElementById('deal-card-' + payload.new.id);
-            if (!isDuplicate) {
-                window.addNewDealToFeedUI(payload.new);
-            }
-        })
-        .subscribe(function(status) {
-            console.log('[Realtime] Глобальный канал статус:', status);
-        });
+        if (typeof window._sb !== 'undefined' && window._sb && typeof window._sb.channel === 'function') {
+            window.myDealsChannel = window._sb
+                .channel('global-deals-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
+                    var isDuplicate = document.getElementById('deal-card-' + payload.new.id);
+                    if (!isDuplicate) {
+                        window.addNewDealToFeedUI(payload.new);
+                    }
+                })
+                .subscribe(function(status) {
+                    console.log('[Realtime] Глобальный канал статус:', status);
+                });
+        }
+    }
+} catch (e) {
+    console.log("Ошибка инициализации каналов:", e);
 }
