@@ -15,8 +15,8 @@
     let deals = [];
     let reviews = [];
     let dealMessages = {};
-    let fakeOnline = 341;
-    let onlineBaseValue = 300;
+    let fakeOnline = parseInt(localStorage.getItem('cached_online_counter')) || 300;
+    let onlineBaseValue = fakeOnline;
     let lastDealsFeedArray = [];
     let isLoginMode = true;
     let isDarkTheme = true;
@@ -1346,6 +1346,13 @@
     }
 
     async function loadOnlineCounter() {
+        var onlineField = document.getElementById('onlineCount');
+
+        var cachedOnline = localStorage.getItem('cached_online_counter');
+        if (cachedOnline && onlineField) {
+            onlineField.innerText = cachedOnline;
+        }
+
         try {
             var r = await sb.from('platform_settings').select('value').eq('key', 'online_counter').single();
             if (!r.error && r.data && r.data.value) {
@@ -1353,10 +1360,15 @@
                 if (!isNaN(v) && v > 0) {
                     onlineBaseValue = v;
                     fakeOnline = v;
+                    localStorage.setItem('cached_online_counter', String(v));
+                    if (onlineField) onlineField.innerText = String(v);
                 }
+            } else {
+                console.error('[Online] Ошибка или пустое значение в БД:', r.error);
+                if (!cachedOnline && onlineField) onlineField.innerText = '300';
             }
         } catch (e) {
-            console.warn('[Online] Не удалось загрузить счётчик:', e.message);
+            console.error('[Online] Критическая ошибка запроса:', e.message);
         }
     }
 
@@ -1368,6 +1380,7 @@
                 if (!isNaN(newVal) && newVal > 0) {
                     onlineBaseValue = newVal;
                     fakeOnline = newVal;
+                    localStorage.setItem('cached_online_counter', String(newVal));
                     var onlineField = document.getElementById('onlineCount');
                     if (onlineField) onlineField.innerText = fakeOnline;
                 }
