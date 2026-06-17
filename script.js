@@ -698,17 +698,77 @@
 
     async function autoCleanFakeDeals() {
         if (!currentUser || currentUser.role !== 'admin') return;
-        console.log('[AutoClean] Проверка фейковых сделок (старше 1ч)...');
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-        const { error } = await sb
+        console.log('[AutoClean] Проверка фейковых сделок...');
+
+        // Получаем все ID фейков
+        var allRes = await sb.from('deals').select('id').eq('is_fake', true);
+        if (allRes.error) {
+            console.error('[AutoClean] Ошибка получения фейков:', allRes.error.message);
+            return;
+        }
+        var allFakeIds = allRes.data || [];
+
+        // Если фейков нет — генерируем 5 стартовых
+        if (allFakeIds.length === 0) {
+            console.log('[AutoClean] Фейков нет, генерируем 5 стартовых...');
+            var now = Date.now();
+            var offsets = [10 * 60 * 1000, 25 * 60 * 1000, 40 * 60 * 1000, 55 * 60 * 1000, 70 * 60 * 1000];
+            var items = ['CS2 Skin', 'Dota 2 Item', 'Steam Gift', 'Digital Goods', 'Game Account', 'Crypto Voucher', 'VPN Subscription', 'Software License'];
+            for (var i = 0; i < offsets.length; i++) {
+                var seller = 'User#' + Math.floor(100000 + Math.random() * 900000);
+                var buyer = 'User#' + Math.floor(100000 + Math.random() * 900000);
+                var amount = Math.random() < 0.85
+                    ? Math.floor(Math.random() * 2851) + 150
+                    : Math.floor(Math.random() * 25001) + 5000;
+                var item = items[Math.floor(Math.random() * items.length)];
+                try {
+                    await sb.from('deals').insert({
+                        seller: seller,
+                        buyer: buyer,
+                        amount: amount,
+                        item: item,
+                        status: 'completed',
+                        is_fake: true,
+                        created_at: new Date(now - offsets[i]).toISOString()
+                    });
+                } catch (e) {
+                    console.error('[AutoClean] Ошибка генерации фейка:', e);
+                }
+            }
+            console.log('[AutoClean] Стартовые фейки созданы');
+            return;
+        }
+
+        // Если 5 или меньше — ничего не удаляем
+        if (allFakeIds.length <= 5) {
+            console.log('[AutoClean] Фейков ' + allFakeIds.length + ', очистка не требуется');
+            return;
+        }
+
+        // Получаем 5 последних ID для сохранения
+        var keepRes = await sb.from('deals')
+            .select('id')
+            .eq('is_fake', true)
+            .order('created_at', { ascending: false })
+            .limit(5);
+        if (keepRes.error) {
+            console.error('[AutoClean] Ошибка получения ID фейков:', keepRes.error.message);
+            return;
+        }
+        var keepIds = keepRes.data.map(function(d) { return d.id; });
+
+        // Удаляем старые фейки (старше 1ч), исключая 5 сохранённых
+        var oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        var delRes = await sb
             .from('deals')
             .delete()
             .eq('is_fake', true)
-            .lt('created_at', oneHourAgo);
-        if (error) {
-            console.error('[AutoClean] Ошибка удаления старых фейков:', error.message);
+            .lt('created_at', oneHourAgo)
+            .not('id', 'in', keepIds);
+        if (delRes.error) {
+            console.error('[AutoClean] Ошибка удаления старых фейков:', delRes.error.message);
         } else {
-            console.log('[AutoClean] Фейковые сделки (старше 1ч) удалены');
+            console.log('[AutoClean] Фейковые сделки (старше 1ч) удалены, 5 последних сохранены');
         }
     }
 
