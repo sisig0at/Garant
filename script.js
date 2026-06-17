@@ -1456,7 +1456,9 @@
         // ---- Глобальный канал для массовой рассылки ----
         sb.channel('global-broadcast')
             .on('broadcast', { event: 'broadcast' }, function(payload) {
-                showNotification('📢 ' + payload.message);
+                if (payload && (payload.message || payload.text)) {
+                    showNotification('📢 ' + (payload.message || payload.text));
+                }
             })
             .subscribe(function(status) {
                 console.log('[Realtime] Статус канала global-broadcast:', status);
@@ -2688,12 +2690,14 @@
             bellContainer.addEventListener('click', function(e) {
                 e.stopPropagation();
                 var dropdown = document.getElementById('notification-dropdown');
+                var profileDrop = document.getElementById('profile-dropdown');
                 var badge = document.getElementById('bell-badge');
                 if (dropdown) {
                     var isOpen = !dropdown.classList.contains('hidden');
                     if (isOpen) {
                         dropdown.classList.add('hidden');
                     } else {
+                        if (profileDrop) profileDrop.classList.add('hidden');
                         dropdown.classList.remove('hidden');
                         if (badge) {
                             badge.innerText = '0';
@@ -2703,31 +2707,32 @@
                 }
             });
         }
-        // Закрытие меню уведомлений при клике вне
-        document.addEventListener('click', function(e) {
-            var dropdown = document.getElementById('notification-dropdown');
-            var bellContainer = document.getElementById('notification-bell-container');
-            if (dropdown && !dropdown.classList.contains('hidden') && bellContainer && !bellContainer.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
         // Клик по профилю — toggle выпадающего меню профиля
         var profileMenu = document.getElementById('profile-menu-container');
         if (profileMenu) {
             profileMenu.addEventListener('click', function(e) {
                 e.stopPropagation();
+                var notificationDrop = document.getElementById('notification-dropdown');
                 var drop = document.getElementById('profile-dropdown');
                 if (drop) {
+                    if (drop.classList.contains('hidden')) {
+                        if (notificationDrop) notificationDrop.classList.add('hidden');
+                    }
                     drop.classList.toggle('hidden');
                 }
             });
         }
-        // Закрытие меню профиля при клике вне
+        // Закрытие обоих меню при клике вне
         document.addEventListener('click', function(e) {
-            var drop = document.getElementById('profile-dropdown');
-            var profileMenu = document.getElementById('profile-menu-container');
-            if (drop && !drop.classList.contains('hidden') && profileMenu && !profileMenu.contains(e.target)) {
-                drop.classList.add('hidden');
+            var notifDrop = document.getElementById('notification-dropdown');
+            var bellContainer = document.getElementById('notification-bell-container');
+            var profDrop = document.getElementById('profile-dropdown');
+            var profMenu = document.getElementById('profile-menu-container');
+            if (notifDrop && !notifDrop.classList.contains('hidden') && bellContainer && !bellContainer.contains(e.target)) {
+                notifDrop.classList.add('hidden');
+            }
+            if (profDrop && !profDrop.classList.contains('hidden') && profMenu && !profMenu.contains(e.target)) {
+                profDrop.classList.add('hidden');
             }
         });
         // Кнопки меню профиля
