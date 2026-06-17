@@ -1366,3 +1366,23 @@ html, body {
     border-color: rgba(139, 92, 246, 0.8) !important;
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.2) !important;
 }
+
+#reg-agreement {
+    width: 16px !important;
+    height: 16px !important;
+    transform: none !important;
+    transition: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+#reg-agreement:active,
+#reg-agreement:focus,
+#reg-agreement:checked {
+    width: 16px !important;
+    height: 16px !important;
+    transform: none !important;
+    scale: 1 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
