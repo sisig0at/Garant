@@ -2686,7 +2686,13 @@
         if (hash.indexOf('deal-') === 0) {
             var dealId = parseInt(hash.split('-')[1]);
             if (deals.find(function(d) { return d.id == dealId; })) {
-                showPage('dealsPage');
+                ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].forEach(function(p) {
+                    var el = document.getElementById(p);
+                    if (el) el.classList.add('hidden-page');
+                });
+                document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
+                var dealLink = document.querySelector('.nav-links a[data-page="deals"]');
+                if (dealLink) dealLink.classList.add('active');
                 showSingleDeal(dealId);
             } else {
                 showPage('homePage');
