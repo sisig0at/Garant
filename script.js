@@ -497,7 +497,7 @@
             }
         }
 
-        ['navDeals', 'navReviews', 'navSupport', 'navProfile'].forEach(function(id) {
+        ['navDeals', 'navReviews', 'navSupport'].forEach(function(id) {
             let el = document.getElementById(id);
             if (el) el.style.display = isGuest ? 'none' : 'inline-block';
         });
@@ -536,14 +536,6 @@
                 (currentUser.bio ? '<p><i class="fas fa-info-circle"></i> <strong>О себе:</strong> ' + escapeHtml(currentUser.bio) + '</p>' : '');
         }
 
-        // Fill settings fields if they exist
-        var nickInput = document.getElementById('settings-nickname');
-        var avatarInput = document.getElementById('settings-avatar');
-        var bioInput = document.getElementById('settings-bio');
-        if (nickInput) nickInput.value = currentUser.nickname || '';
-        if (avatarInput) avatarInput.value = currentUser.avatar_url || '';
-        if (bioInput) bioInput.value = currentUser.bio || '';
-
         let ratings = await getRatingsForUser(currentUser.login);
         let totalRatings = ratings.length;
         let avgRating = totalRatings > 0 ? (ratings.reduce(function(s, r) { return s + r.rating; }, 0) / totalRatings) : 0;
@@ -572,6 +564,20 @@
             achievements.map(function(a) {
                 return '<span class="achievement-badge"><i class="fas fa-medal"></i> ' + escapeHtml(a.achievement_name) + '</span>';
             }).join(' ');
+    }
+
+    function renderSettings() {
+        if (!currentUser) return;
+        var nickInput = document.getElementById('settings-nickname');
+        var bioInput = document.getElementById('settings-bio');
+        var fileInput = document.getElementById('settings-avatar-file');
+        if (nickInput) nickInput.value = currentUser.nickname || '';
+        if (bioInput) bioInput.value = currentUser.bio || '';
+        if (fileInput) fileInput.value = '';
+        var curPwd = document.getElementById('settings-current-password');
+        var newPwd = document.getElementById('settings-new-password');
+        if (curPwd) curPwd.value = '';
+        if (newPwd) newPwd.value = '';
     }
 
     async function renderDeals() {
@@ -1178,7 +1184,7 @@
             var ap = document.getElementById('adminPage');
             if (ap) ap.classList.add('hidden-page');
         }
-        ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].forEach(function(p) {
+        ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].forEach(function(p) {
             var el = document.getElementById(p);
             if (el) el.classList.add('hidden-page');
         });
@@ -1186,7 +1192,7 @@
         if (pageId === 'adminPage') {
             window.location.hash = 'page-adminPage';
             document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
-            var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' };
+        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' };
             var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
             if (key) {
                 var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
@@ -1219,7 +1225,7 @@
         var target = document.getElementById(pageId);
         if (target) target.classList.remove('hidden-page');
         document.querySelectorAll('.nav-links a').forEach(function(a) { a.classList.remove('active'); });
-        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' };
+        var map = { home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' };
         var key = Object.keys(map).find(function(k) { return map[k] === pageId; });
         if (key) {
             var link = document.querySelector('.nav-links a[data-page="' + key + '"]');
@@ -1239,6 +1245,9 @@
         }
         if (pageId === 'homePage') {
             setTimeout(initFaq, 100);
+        }
+        if (pageId === 'settingsPage') {
+            renderSettings();
         }
     }
 
@@ -1707,7 +1716,7 @@
                 showPage('homePage');
                 return;
             }
-            showPage({ home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage' }[page]);
+            showPage({ home: 'homePage', deals: 'dealsPage', reviews: 'reviewsPage', support: 'supportPage', profile: 'profilePage', admin: 'adminPage', help: 'helpPage', settings: 'settingsPage' }[page]);
             return;
         }
 
@@ -2610,8 +2619,11 @@
                 } else {
                     showPage('homePage');
                 }
-            } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'adminPage', 'helpPage'].indexOf(hashPageId) !== -1) {
+            } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].indexOf(hashPageId) !== -1) {
                 if (hashPageId === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) {
+                    hashPageId = 'homePage';
+                }
+                if (hashPageId === 'settingsPage' && !currentUser) {
                     hashPageId = 'homePage';
                 }
                 showPage(hashPageId);
@@ -2730,13 +2742,9 @@
         var dropSettings = document.getElementById('drop-btn-settings');
         if (dropSettings) {
             dropSettings.addEventListener('click', function() {
-                showPage('profilePage');
+                showPage('settingsPage');
                 var drop = document.getElementById('profile-dropdown');
                 if (drop) drop.classList.add('hidden');
-                setTimeout(function() {
-                    var settingsEl = document.getElementById('profileSettings');
-                    if (settingsEl) settingsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 100);
             });
         }
         var dropLogout = document.getElementById('drop-btn-logout');
@@ -2745,18 +2753,30 @@
                 logout();
             });
         }
-        // Сохранение настроек профиля
+        // Сохранение настроек профиля (ник, био, аватар через Supabase Storage)
         var saveSettingsBtn = document.getElementById('saveProfileSettings');
         if (saveSettingsBtn) {
             saveSettingsBtn.addEventListener('click', async function() {
                 if (!currentUser) return;
                 var nick = document.getElementById('settings-nickname').value.trim();
-                var avatar = document.getElementById('settings-avatar').value.trim();
                 var bio = document.getElementById('settings-bio').value.trim();
                 if (!nick) { showToast('Никнейм не может быть пустым'); return; }
                 var updateData = { nickname: nick };
-                if (avatar) updateData.avatar_url = avatar;
                 if (bio) updateData.bio = bio;
+                // Загрузка аватара через файл
+                var fileInput = document.getElementById('settings-avatar-file');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    var file = fileInput.files[0];
+                    var ext = file.name.split('.').pop();
+                    var filePath = currentUser.login + '_' + Date.now() + '.' + ext;
+                    var { data: uploadData, error: uploadError } = await sb.storage.from('avatars').upload(filePath, file);
+                    if (uploadError) {
+                        showToast('Ошибка загрузки аватара: ' + uploadError.message);
+                        return;
+                    }
+                    var { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
+                    if (urlData) updateData.avatar_url = urlData.publicUrl;
+                }
                 var r = await sb.from('users').update(updateData).eq('id', currentUser.id).select();
                 if (!r.error && r.data && r.data[0]) {
                     var oldLogin = currentUser.login;
@@ -2769,6 +2789,26 @@
                 } else {
                     showToast('Ошибка сохранения');
                 }
+            });
+        }
+        // Смена пароля
+        var updatePwdBtn = document.getElementById('updatePasswordBtn');
+        if (updatePwdBtn) {
+            updatePwdBtn.addEventListener('click', async function() {
+                if (!currentUser) return;
+                var curPwd = document.getElementById('settings-current-password').value;
+                var newPwd = document.getElementById('settings-new-password').value;
+                if (!curPwd || !newPwd) { showToast('Заполните оба поля пароля'); return; }
+                if (newPwd.length < 6) { showToast('Новый пароль должен быть минимум 6 символов'); return; }
+                // Проверяем текущий пароль
+                var { data: checkData, error: checkError } = await sb.from('users').select('password').eq('id', currentUser.id).single();
+                if (checkError || !checkData) { showToast('Ошибка проверки пароля'); return; }
+                if (checkData.password !== curPwd) { showToast('Текущий пароль неверен'); return; }
+                var { error: updateError } = await sb.from('users').update({ password: newPwd }).eq('id', currentUser.id);
+                if (updateError) { showToast('Ошибка смены пароля'); return; }
+                document.getElementById('settings-current-password').value = '';
+                document.getElementById('settings-new-password').value = '';
+                showToast('Пароль успешно изменён');
             });
         }
         initApp();

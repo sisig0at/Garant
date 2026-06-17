@@ -22,7 +22,6 @@
             <a data-page="deals" id="navDeals" style="display:none;"><i class="fas fa-handshake"></i> Сделки</a>
             <a data-page="reviews" id="navReviews" style="display:none;"><i class="fas fa-star"></i> Отзывы</a>
             <a data-page="support" id="navSupport" style="display:none;"><i class="fas fa-headset"></i> Поддержка</a>
-            <a data-page="profile" id="navProfile" style="display:none;"><i class="fas fa-user"></i> Профиль</a>
             <a data-page="admin" id="navAdmin" style="display:none;"><i class="fas fa-crown"></i> Админ</a>
             <a data-page="help"><i class="fas fa-question-circle"></i> Помощь</a>
         </div>
@@ -41,11 +40,12 @@
                 <img id="header-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" style="width:32px; height:32px; border-radius:50%; border:1px solid #a78bfa; margin-right:6px; background:#1e1b2e;">
                 <span id="header-nickname" style="color:#e2e8f0; font-size:14px; margin-right:4px; white-space:nowrap;">Пользователь</span>
                 <span style="font-size:10px; color:#a78bfa;">▼</span>
-                <div id="profile-dropdown" class="hidden" style="position:absolute; top:40px; right:0; width:180px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:8px; display:flex; flex-direction:column; gap:4px;">
-                    <button id="drop-btn-profile" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">👤 Профиль</button>
-                    <button id="drop-btn-settings" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">⚙️ Настройки</button>
-                    <div style="height:1px; background:rgba(255,255,255,0.1); margin:4px 0;"></div>
-                    <button id="drop-btn-logout" style="background:none; border:none; color:#ef4444; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%; font-weight:bold;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">🚪 Выйти</button>
+                <div id="profile-dropdown" class="hidden" style="position:absolute; top:45px; right:0; width:220px; background:rgba(19,17,28,0.95); backdrop-filter:blur(10px); border:1px solid rgba(139,92,246,0.4); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.7); padding:10px; display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:11px; color:#6b7280; padding:4px 10px; text-transform:uppercase; font-weight:bold; letter-spacing:0.5px;">Управление</div>
+                    <button id="drop-btn-profile" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:8px 12px; font-size:14px; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:10px; transition:0.2s; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.15)'; this.style.color='#a78bfa'" onmouseout="this.style.background='none'; this.style.color='#e2e8f0'"><span>👤</span> Мой Профиль</button>
+                    <button id="drop-btn-settings" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:8px 12px; font-size:14px; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:10px; transition:0.2s; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.15)'; this.style.color='#a78bfa'" onmouseout="this.style.background='none'; this.style.color='#e2e8f0'"><span>⚙️</span> Настройки безопасности</button>
+                    <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
+                    <button id="drop-btn-logout" style="background:none; border:none; color:#ef4444; text-align:left; padding:8px 12px; font-size:14px; cursor:pointer; border-radius:6px; display:flex; align-items:center; gap:10px; font-weight:bold; transition:0.2s; width:100%;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'"><span>🚪</span> Выйти из системы</button>
                 </div>
             </div>
             <span class="balance-display" style="white-space:nowrap;"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
@@ -194,13 +194,28 @@
                     <button id="withdrawBalanceBtn"><i class="fas fa-minus-circle"></i> Вывести</button>
                 </div>
             </div>
-            <div class="card" id="profileSettings" style="margin-top:20px;">
+        </div>
+
+        <!-- НАСТРОЙКИ -->
+        <div id="settingsPage" class="hidden-page">
+            <div class="card">
                 <h3>⚙️ Настройки профиля</h3>
-                <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px;">
-                    <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <input type="text" id="settings-avatar" placeholder="URL аватарки (например, https://example.com/avatar.png)" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white; resize:vertical;"></textarea>
-                    <button id="saveProfileSettings" style="padding:10px 20px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer;">💾 Сохранить изменения</button>
+                <div style="display:flex; flex-direction:column; gap:14px; margin-top:18px;">
+                    <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
+                    <input type="file" id="settings-avatar-file" accept="image/*" style="color:#9ca3af; font-size:13px;">
+                    <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white; resize:vertical;"></textarea>
+                    <button id="saveProfileSettings" style="padding:12px 20px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer;">💾 Сохранить изменения</button>
+                </div>
+            </div>
+
+            <!-- Безопасность -->
+            <div class="card" style="margin-top:20px;">
+                <h3>🔒 Безопасность</h3>
+                <p style="font-size:13px; color:#9ca3af; margin:4px 0 16px;">Смена пароля учётной записи</p>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <input type="password" id="settings-current-password" placeholder="Текущий пароль" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
+                    <input type="password" id="settings-new-password" placeholder="Новый пароль" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
+                    <button id="updatePasswordBtn" style="padding:12px 20px; background:#6d28d9; color:white; border:none; border-radius:6px; cursor:pointer;">🔄 Обновить пароль</button>
                 </div>
             </div>
         </div>
