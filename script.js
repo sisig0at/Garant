@@ -1904,6 +1904,10 @@
         if (passConfirmInp) { passConfirmInp.style.display = 'none'; passConfirmInp.value = ''; }
         if (nicknameInp) { nicknameInp.style.display = 'none'; nicknameInp.value = ''; }
         if (errEl) errEl.style.display = 'none';
+        var agWrapper = document.getElementById('registration-agreement-wrapper');
+        if (agWrapper) agWrapper.classList.add('hidden');
+        var agreementCb = document.getElementById('reg-agreement');
+        if (agreementCb) agreementCb.checked = false;
 
         var handler = async function() {
             var log = loginInp.value.trim();
@@ -2011,8 +2015,10 @@
                 if (emailInp) emailInp.style.display = 'none';
                 if (passConfirmInp) passConfirmInp.style.display = 'none';
                 if (nicknameInp) nicknameInp.style.display = 'none';
-                var agWrap = document.getElementById('reg-agreement-wrap');
-                if (agWrap) agWrap.style.display = 'none';
+                var agWrapper = document.getElementById('registration-agreement-wrapper');
+                if (agWrapper) agWrapper.classList.add('hidden');
+                var agreementCb = document.getElementById('reg-agreement');
+                if (agreementCb) agreementCb.checked = false;
             } else {
                 title.innerText = 'Регистрация';
                 submit.innerText = 'Зарегистрироваться';
@@ -2021,8 +2027,8 @@
                 if (emailInp) emailInp.style.display = '';
                 if (passConfirmInp) passConfirmInp.style.display = '';
                 if (nicknameInp) nicknameInp.style.display = '';
-                var agWrap = document.getElementById('reg-agreement-wrap');
-                if (agWrap) agWrap.style.display = 'flex';
+                var agWrapper = document.getElementById('registration-agreement-wrapper');
+                if (agWrapper) agWrapper.classList.remove('hidden');
             }
             loginInp.value = '';
             passInp.value = '';
