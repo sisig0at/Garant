@@ -58,12 +58,12 @@
         setTimeout(function() { t.remove(); }, 3000);
     }
 
-    function showNotification(title, message) {
+    function showNotification(text) {
         var container = document.getElementById('toast-container');
         if (!container) return;
         var toast = document.createElement('div');
         toast.style.cssText = 'background:#2a1a5a; color:#fff; padding:12px 16px; border-radius:8px; border-left:4px solid #c084fc; box-shadow:0 4px 12px rgba(0,0,0,0.3); min-width:280px; max-width:360px; opacity:0; transition:opacity 0.3s ease;';
-        toast.innerHTML = '<div style="font-weight:bold; margin-bottom:4px;">' + title + '</div><div style="font-size:13px; opacity:0.9;">' + message + '</div>';
+        toast.innerText = text;
         container.appendChild(toast);
         setTimeout(function() { toast.style.opacity = '1'; }, 10);
         var badge = document.getElementById('bell-badge');
@@ -73,7 +73,7 @@
             badge.innerText = count;
             badge.style.display = 'inline';
             var bell = document.getElementById('notification-bell');
-            if (bell) bell.style.display = 'inline-flex';
+            if (bell) bell.style.display = 'inline-block';
         }
         setTimeout(function() {
             toast.style.opacity = '0';
@@ -1208,11 +1208,16 @@
         var feedDiv = document.getElementById('liveDealsFeed');
         if (!feedDiv || !data) return;
         if (data.length > 0) {
-            lastDealsFeedArray = data.slice().reverse().map(function(d) {
-                return escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+            data.slice().reverse().forEach(function(d) {
+                var entry = escapeHtml(d.seller) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(d.buyer) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+                lastDealsFeedArray.unshift(entry);
+                if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             });
-            feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-                return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
+            feedDiv.innerHTML = data.slice().reverse().map(function(d) {
+                return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(d.buyer) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(d.seller) + '</span> завершили сделку</div>' +
+                    '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
+                '</div>';
             }).join('');
         }
     }
@@ -1247,7 +1252,7 @@
                     if (idx !== -1) deals[idx] = d;
                     loadSingleDealPage(d.id);
                     console.log('[Realtime] Статус сделки #' + d.id + ' обновлён:', d.status);
-                    showNotification('Статус сделки', 'Статус вашей сделки #' + d.id + ' изменён на "' + d.status + '"');
+                    showNotification('🔔 Статус вашей сделки #' + d.id + ' изменён на "' + d.status + '"');
                 }
             })
             .subscribe(function(status) {
@@ -1268,7 +1273,9 @@
                 lastDealsFeedArray.unshift(entry);
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
                 feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-                    return '<div><i class="fas fa-exchange-alt"></i> ' + t + '</div>';
+                    return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                        '<div>⚡ ' + t + '</div>' +
+                    '</div>';
                 }).join('');
             })
             .subscribe(function(status) {
@@ -1304,14 +1311,14 @@
                         recalcOpenTicketCount();
                     }
                     if (currentUser && currentUser.role === 'admin') {
-                        showNotification('Новое обращение', 'Пользователь создал обращение: "' + t.subject + '"');
+                        showNotification('🔔 Пользователь создал обращение: "' + t.subject + '"');
                     }
                 } else if (payload.eventType === 'UPDATE') {
                     var idx = supportTickets.findIndex(function(x) { return x.id === t.id; });
                     if (idx !== -1) supportTickets[idx] = t;
                     recalcOpenTicketCount();
                     if (currentUser && String(currentUser.id) === String(t.user_id) && t.status === 'closed') {
-                        showNotification('Обращение закрыто', 'Ваше обращение "' + t.subject + '" было закрыто');
+                        showNotification('🔔 Ваше обращение "' + t.subject + '" было закрыто');
                     }
                 } else if (payload.eventType === 'DELETE') {
                     supportTickets = supportTickets.filter(function(x) { return x.id !== payload.old.id; });
@@ -1349,9 +1356,9 @@
                         var ticket = supportTickets.find(function(x) { return x.id === msg.ticket_id; });
                         if (ticket) {
                             if (currentUser.role === 'admin' && msg.sender_role !== 'admin') {
-                                showNotification('Новое сообщение', 'Новое сообщение в обращении "' + ticket.subject + '"');
+                                showNotification('🔔 Новое сообщение в обращении "' + ticket.subject + '"');
                             } else if (currentUser.role !== 'admin' && msg.sender_role === 'admin') {
-                                showNotification('Новое сообщение', 'Поддержка ответила в обращении "' + ticket.subject + '"');
+                                showNotification('🔔 Поддержка ответила в обращении "' + ticket.subject + '"');
                             }
                         }
                     }

@@ -28,11 +28,11 @@
         </div>
         <div class="user-info">
             <i class="fas fa-user-circle"></i> <span id="userNameDisplay">Гость</span>
-            <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
-            <div id="notification-bell" style="position:relative; margin-left:10px; cursor:pointer; display:none;">
-                <i class="fas fa-bell"></i>
-                <span id="bell-badge" style="display:none; position:absolute; top:-8px; right:-10px; background:red; color:white; font-size:10px; padding:1px 5px; border-radius:50%;">0</span>
+            <div id="notification-bell" style="position:relative; margin-right:15px; cursor:pointer; font-size:18px; display:inline-block; transition:transform 0.2s; display:none;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                🔔
+                <span id="bell-badge" style="display:none; position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:1px 5px; border-radius:9999px; line-height:1;">0</span>
             </div>
+            <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
             <button id="authBtn" class="premium-auth-btn"><i class="fas fa-sign-in-alt"></i> <span>Вход</span></button>
             <button id="themeToggle" class="theme-btn" title="Сменить тему"><i class="fas fa-moon"></i></button>
         </div>
