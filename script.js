@@ -1550,7 +1550,7 @@
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             });
             feedDiv.innerHTML = data.slice().reverse().map(function(d) {
-                return '<div id="deal-card-' + d.id + '" class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                return '<div id="deal-card-' + d.id + '" class="feed-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0; cursor:default; user-select:none;">' +
                     '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.seller)) + '</span> завершили сделку</div>' +
                     '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
                 '</div>';
@@ -1574,7 +1574,7 @@
         lastDealsFeedArray.unshift(entry);
         if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
         feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-            return '<div id="deal-card-' + t.id + '" class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+            return '<div id="deal-card-' + t.id + '" class="feed-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0; cursor:default; user-select:none;">' +
                 '<div>⚡ ' + t.text + '</div>' +
             '</div>';
         }).join('');
@@ -2268,8 +2268,13 @@
         // Deal item click — open in same window
         var dealItem = target.closest('.deal-item');
         if (dealItem && !target.closest('button')) {
-            showSingleDeal(parseInt(dealItem.dataset.id));
-            return;
+            var dip = parseInt(dealItem.dataset.id);
+            if (!isNaN(dip) && deals.find(function(d) { return d.id == dip; })) {
+                if (currentUser && (currentUser.login === dealItem.dataset.seller || currentUser.login === dealItem.dataset.buyer)) {
+                    showSingleDeal(dip);
+                    return;
+                }
+            }
         }
 
         // Delete deal button
@@ -2893,7 +2898,13 @@
         }
         if (hash.indexOf('deal-') === 0) {
             var dealId = parseInt(hash.split('-')[1]);
-            if (deals.find(function(d) { return d.id == dealId; })) {
+            var targetDeal = deals.find(function(d) { return d.id == dealId; });
+            if (targetDeal) {
+                if (!currentUser || (currentUser.login !== targetDeal.seller && currentUser.login !== targetDeal.buyer)) {
+                    window.location.hash = '';
+                    showPage('homePage');
+                    return;
+                }
                 ['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage'].forEach(function(p) {
                     var el = document.getElementById(p);
                     if (el) el.classList.add('hidden-page');
