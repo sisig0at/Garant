@@ -102,10 +102,23 @@
             listContainer.innerHTML = '<div style="color:#6b7280; text-align:center; padding:15px 0;">Уведомлений нет</div>';
             return;
         }
-        window.appNotifications.forEach(function(notif) {
+        window.appNotifications.forEach(function(notif, idx) {
             const item = document.createElement('div');
-            item.style.cssText = 'padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.05);';
-            item.innerHTML = '<span style="color:#6b7280; font-size:10px; margin-right:5px;">' + notif.time + '</span> ' + notif.text;
+            item.style.padding = '12px 14px';
+            item.style.borderBottom = idx === window.appNotifications.length - 1 ? 'none' : '1px solid rgba(139, 92, 246, 0.1)';
+            item.style.display = 'flex';
+            item.style.flexDirection = 'column';
+            item.style.gap = '4px';
+            item.style.transition = 'background 0.2s';
+            item.onmouseover = function() { item.style.background = 'rgba(139, 92, 246, 0.03)'; };
+            item.onmouseout = function() { item.style.background = 'none'; };
+            item.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">' +
+                '<span style="color:#6b7280;font-size:11px;font-weight:500;letter-spacing:0.5px;">⏳ ' + notif.time + '</span>' +
+                '</div>' +
+                '<div style="font-size:13px;color:#e2e8f0;line-height:1.4;display:flex;align-items:flex-start;gap:8px;">' +
+                '<span style="flex-shrink:0;">' + notif.text.substring(0, 2) + '</span>' +
+                '<span>' + notif.text.substring(2) + '</span>' +
+                '</div>';
             listContainer.appendChild(item);
         });
     }
