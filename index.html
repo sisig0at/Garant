@@ -46,7 +46,7 @@
                 <div id="profile-dropdown">
                     <div style="font-size:11px; color:#6b7280; padding:4px 10px; text-transform:uppercase; font-weight:bold; letter-spacing:0.5px;">Управление</div>
                     <button id="drop-btn-profile"><span>👤</span> Мой Профиль</button>
-                    <button id="drop-btn-settings"><span>⚙️</span> Настройки безопасности</button>
+                    <button id="drop-btn-settings"><span>⚙️</span> Настройки</button>
                     <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
                     <button id="drop-btn-logout"><span>🚪</span> Выйти из системы</button>
                 </div>
@@ -210,24 +210,45 @@
         <!-- НАСТРОЙКИ -->
         <div id="settingsPage" class="hidden-page">
             <div class="card">
-                <h3>⚙️ Настройки профиля</h3>
-                <div style="display:flex; flex-direction:column; gap:14px; margin-top:18px;">
-                    <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <label for="settings-avatar-file" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:bold;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='rgba(139,92,246,0.1)'">📁 Выбрать аватарку с ПК</label>
-                    <input type="file" id="settings-avatar-file" accept="image/*" style="display:none;">
-                    <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white; resize:vertical;"></textarea>
-                    <button id="saveProfileSettings" style="padding:12px 20px; background:#7c3aed; color:white; border:none; border-radius:6px; cursor:pointer;">💾 Сохранить изменения</button>
-                </div>
-            </div>
-
-            <!-- Безопасность -->
-            <div class="card" style="margin-top:20px;">
-                <h3>🔒 Безопасность</h3>
-                <p style="font-size:13px; color:#9ca3af; margin:4px 0 16px;">Смена пароля учётной записи</p>
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                    <input type="password" id="settings-current-password" placeholder="Текущий пароль" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <input type="password" id="settings-new-password" placeholder="Новый пароль" style="padding:10px 14px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;">
-                    <button id="updatePasswordBtn" style="padding:12px 20px; background:#6d28d9; color:white; border:none; border-radius:6px; cursor:pointer;">🔄 Обновить пароль</button>
+                <h3 style="margin-bottom:20px;">⚙️ Настройки</h3>
+                <div style="display:flex;gap:30px;align-items:flex-start;text-align:left;">
+                    <!-- Левое боковое меню категорий -->
+                    <div class="settings-sidebar" style="width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+                        <button class="settings-tab-btn active" data-target="set-tab-profile" style="background:rgba(139,92,246,0.1);border:1px solid #8b5cf6;color:#fff;text-align:left;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">👤 Управление профилем</button>
+                        <button class="settings-tab-btn" data-target="set-tab-security" style="background:none;border:1px solid transparent;color:#9ca3af;text-align:left;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">🔒 Безопасность аккаунта</button>
+                        <button class="settings-tab-btn" data-target="set-tab-privacy" style="background:none;border:1px solid transparent;color:#9ca3af;text-align:left;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;width:100%;">📜 Пользовательское соглашение</button>
+                    </div>
+                    <!-- Правая контентная часть -->
+                    <div class="settings-content" style="flex-grow:1;width:100%;">
+                        <!-- Блок 1: Профиль -->
+                        <div id="set-tab-profile" class="settings-pane">
+                            <h4 style="color:#a78bfa;font-size:15px;margin-bottom:14px;">👤 Управление профилем</h4>
+                            <div style="display:flex;flex-direction:column;gap:14px;">
+                                <input type="text" id="settings-nickname" placeholder="Публичный никнейм" style="padding:10px 14px;background:#0d0b14;border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:white;">
+                                <label for="settings-avatar-file" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-size:13px;font-weight:bold;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='rgba(139,92,246,0.1)'">📁 Выбрать аватарку с ПК</label>
+                                <input type="file" id="settings-avatar-file" accept="image/*" style="display:none;">
+                                <textarea id="settings-bio" rows="3" placeholder="О себе (биография)" style="padding:10px 14px;background:#0d0b14;border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:white;resize:vertical;"></textarea>
+                                <button id="saveProfileSettings" style="padding:12px 20px;background:#7c3aed;color:white;border:none;border-radius:6px;cursor:pointer;">💾 Сохранить изменения</button>
+                            </div>
+                        </div>
+                        <!-- Блок 2: Безопасность -->
+                        <div id="set-tab-security" class="settings-pane hidden">
+                            <h4 style="color:#a78bfa;font-size:15px;margin-bottom:14px;">🔒 Безопасность аккаунта</h4>
+                            <p style="font-size:13px;color:#9ca3af;margin-bottom:16px;">Смена пароля учётной записи</p>
+                            <div style="display:flex;flex-direction:column;gap:12px;">
+                                <input type="password" id="settings-current-password" placeholder="Текущий пароль" style="padding:10px 14px;background:#0d0b14;border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:white;">
+                                <input type="password" id="settings-new-password" placeholder="Новый пароль" style="padding:10px 14px;background:#0d0b14;border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:white;">
+                                <button id="updatePasswordBtn" style="padding:12px 20px;background:#6d28d9;color:white;border:none;border-radius:6px;cursor:pointer;">🔄 Обновить пароль</button>
+                            </div>
+                        </div>
+                        <!-- Блок 3: Соглашение -->
+                        <div id="set-tab-privacy" class="settings-pane hidden" style="background:rgba(255,255,255,0.02);border:1px solid rgba(139,92,246,0.15);border-radius:12px;padding:20px;color:#cbd5e1;font-size:13px;line-height:1.6;">
+                            <h3 style="color:#a78bfa;font-size:16px;margin-bottom:15px;font-weight:bold;">📜 Пользовательское соглашение</h3>
+                            <p>1. Сервис VioletGuard предоставляет услуги независимого и безопасного холдирования средств (Escrow) между Продавцом и Покупателем.</p>
+                            <p>2. Платформа обязуется удерживать средства на транзитном счете до момента полного подтверждения выполнения условий сделки обеими сторонами.</p>
+                            <p>3. В случае возникновения спорных ситуаций (Диспутов), стороны обязуются безоговорочно принять решение независимого модератора (Арбитража).</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -316,7 +337,7 @@
 </div>
 
 <!-- МОДАЛЬНЫЕ ОКНА -->
-<div id="authModal" class="modal"><div class="modal-content"><h3 id="authTitle">Вход</h3><input id="login-identifier" placeholder="Логин или Email"><input type="text" id="reg-nickname" placeholder="Отображаемый Никнейм (Публичный)" required style="display:none; padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;"><input id="reg-email" type="email" placeholder="Введите Email" style="display:none;"><input id="authPass" type="password" placeholder="Пароль"><input id="reg-password-confirm" type="password" placeholder="Повторите пароль" style="display:none;"><div id="authError" class="auth-error" style="display:none;"></div><button id="authSubmit" style="width:100%; margin-top:10px;">Войти</button><div style="margin-top:15px; text-align:center;"><button id="switchAuth" style="background:none; border:none; color:#c084fc; cursor:pointer; text-decoration:underline;">Нет аккаунта? Регистрация</button></div><button id="closeAuth" style="margin-top:15px; background:#2a1a5a; width:100%;">Закрыть</button></div></div>
+<div id="authModal" class="modal"><div class="modal-content"><h3 id="authTitle">Вход</h3><input id="login-identifier" placeholder="Логин или Email"><input type="text" id="reg-nickname" placeholder="Отображаемый Никнейм (Публичный)" required style="display:none; padding:8px 12px; background:#0d0b14; border:1px solid rgba(139,92,246,0.3); border-radius:6px; color:white;"><input id="reg-email" type="email" placeholder="Введите Email" style="display:none;"><input id="authPass" type="password" placeholder="Пароль"><input id="reg-password-confirm" type="password" placeholder="Повторите пароль" style="display:none;"><div id="authError" class="auth-error" style="display:none;"></div><div id="reg-agreement-wrap" style="display:none; align-items:center; gap:8px; margin:15px 0; text-align:left; user-select:none;"><input type="checkbox" id="reg-agreement" required style="width:16px;height:16px;accent-color:#8b5cf6;cursor:pointer;"><label for="reg-agreement" style="color:#9ca3af;font-size:12px;cursor:pointer;">Я принимаю <span style="color:#a78bfa;text-decoration:underline;">пользовательское соглашение</span> платформы</label></div><button id="authSubmit" style="width:100%; margin-top:10px;">Войти</button><div style="margin-top:15px; text-align:center;"><button id="switchAuth" style="background:none; border:none; color:#c084fc; cursor:pointer; text-decoration:underline;">Нет аккаунта? Регистрация</button></div><button id="closeAuth" style="margin-top:15px; background:#2a1a5a; width:100%;">Закрыть</button></div></div>
 <div id="reviewModal" class="modal"><div class="modal-content"><h3>Ваш отзыв</h3><select id="revRating"><option value="5">5★</option><option value="4">4★</option><option value="3">3★</option><option value="2">2★</option><option value="1">1★</option></select><textarea id="revText" rows="3"></textarea><button id="submitReview">Оставить</button><button id="closeRev">Отмена</button></div></div>
 <div id="ratingModal" class="modal"><div class="modal-content"><h3>Оцените сделку</h3><p id="ratingDealInfo"></p><select id="ratingStars"><option value="5">5 ★ — Отлично</option><option value="4">4 ★ — Хорошо</option><option value="3">3 ★ — Нормально</option><option value="2">2 ★ — Плохо</option><option value="1">1 ★ — Ужасно</option></select><textarea id="ratingText" rows="3" placeholder="Напишите отзыв о продавце (необязательно)"></textarea><button id="submitRating">Отправить оценку</button><button id="closeRating">Пропустить</button></div></div>
 <div id="rechargeModal" class="modal"><div class="modal-content" style="text-align:center;"><h3>Пополнение баланса</h3><div class="recharge-banks" style="display:flex; flex-direction:column; gap:12px; margin:20px 0;"><button class="bank-btn" data-method="sber">СБЕР</button><button class="bank-btn" data-method="tbank">Т-Банк</button><button class="bank-btn" data-method="vtb">ВТБ</button><button id="cryptoRechargeBtn" class="bank-btn" style="background:#6d28d9;">Криптовалюта</button></div><div id="cryptoOptions" style="display:none; gap:12px; flex-direction:column; margin-bottom:20px;"><button class="crypto-btn" data-crypto="usdt">USDT (TRC20)</button><button class="crypto-btn" data-crypto="btc">BTC</button><button class="crypto-btn" data-crypto="eth">ETH</button></div><button id="closeRecharge" style="margin-top:15px;">Закрыть</button></div></div>

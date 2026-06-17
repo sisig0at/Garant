@@ -1901,6 +1901,14 @@
                     }
                     return;
                 }
+                var agreementCheck = document.getElementById('reg-agreement');
+                if (!agreementCheck || !agreementCheck.checked) {
+                    if (errEl) {
+                        errEl.innerText = 'Вы должны принять пользовательское соглашение!';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
                 var res2 = await registerUser(log, email, pwd, nickname);
                 if (!res2.ok) {
                     if (errEl) {
@@ -1957,6 +1965,8 @@
                 if (emailInp) emailInp.style.display = 'none';
                 if (passConfirmInp) passConfirmInp.style.display = 'none';
                 if (nicknameInp) nicknameInp.style.display = 'none';
+                var agWrap = document.getElementById('reg-agreement-wrap');
+                if (agWrap) agWrap.style.display = 'none';
             } else {
                 title.innerText = 'Регистрация';
                 submit.innerText = 'Зарегистрироваться';
@@ -1965,6 +1975,8 @@
                 if (emailInp) emailInp.style.display = '';
                 if (passConfirmInp) passConfirmInp.style.display = '';
                 if (nicknameInp) nicknameInp.style.display = '';
+                var agWrap = document.getElementById('reg-agreement-wrap');
+                if (agWrap) agWrap.style.display = 'flex';
             }
             loginInp.value = '';
             passInp.value = '';
@@ -2968,6 +2980,26 @@
             dropLogout.addEventListener('click', function() {
                 logout();
             });
+        }
+        // Переключение вкладок в настройках
+        document.querySelectorAll('.settings-tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.settings-tab-btn').forEach(function(b) {
+                    b.style.background = 'none';
+                    b.style.border = '1px solid transparent';
+                    b.style.color = '#9ca3af';
+                });
+                this.style.background = 'rgba(139,92,246,0.1)';
+                this.style.border = '1px solid #8b5cf6';
+                this.style.color = '#fff';
+                var target = this.getAttribute('data-target');
+                document.querySelectorAll('.settings-pane').forEach(function(pane) {
+                    pane.classList.add('hidden');
+                });
+                var targetPane = document.getElementById(target);
+                if (targetPane) targetPane.classList.remove('hidden');
+            });
+        });
         }
         // Сохранение настроек профиля (ник, био, аватар через Supabase Storage)
         var saveSettingsBtn = document.getElementById('saveProfileSettings');
