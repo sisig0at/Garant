@@ -81,8 +81,8 @@
             count++;
             badge.innerText = count;
             badge.classList.remove('hidden');
-            var bellContainer = document.getElementById('notification-bell-container');
-            if (bellContainer) bellContainer.style.display = 'flex';
+            var bellWrapper = document.getElementById('bell-wrapper');
+            if (bellWrapper) bellWrapper.style.display = 'inline-block';
         }
     }
 
@@ -472,14 +472,14 @@
         let balEl = document.getElementById('balanceDisplay');
         if (balEl) balEl.innerText = currentUser ? (currentUser.balance || 0).toLocaleString() : '0';
 
-        // Bell container: show only when logged in
-        var bellContainer = document.getElementById('notification-bell-container');
-        if (bellContainer) bellContainer.style.display = currentUser ? 'flex' : 'none';
+        // Bell wrapper: show only when logged in
+        var bellWrapper = document.getElementById('bell-wrapper');
+        if (bellWrapper) bellWrapper.style.display = currentUser ? 'inline-block' : 'none';
 
-        // Profile menu: show when logged in, hide when guest
-        var profileMenu = document.getElementById('profile-menu-container');
-        if (profileMenu) {
-            profileMenu.style.display = currentUser ? 'flex' : 'none';
+        // Profile wrapper: show when logged in, hide when guest
+        var profileWrapper = document.getElementById('profile-wrapper');
+        if (profileWrapper) {
+            profileWrapper.style.display = currentUser ? 'flex' : 'none';
         }
 
         // Auth button: show only for guests
@@ -2695,22 +2695,21 @@
                 }
             });
         }
-        // Клик по колокольчику — toggle выпадающего меню
-        var bellContainer = document.getElementById('notification-bell-container');
-        if (bellContainer) {
-            bellContainer.addEventListener('click', function(e) {
+        // Клик по колокольчику — toggle с анимацией
+        var bellWrapper = document.getElementById('bell-wrapper');
+        if (bellWrapper) {
+            bellWrapper.addEventListener('click', function(e) {
                 e.stopPropagation();
                 var dropdown = document.getElementById('notification-dropdown');
                 var profileDrop = document.getElementById('profile-dropdown');
                 var badge = document.getElementById('bell-badge');
                 if (dropdown) {
-                    var isOpen = !dropdown.classList.contains('hidden');
-                    if (isOpen) {
-                        dropdown.classList.add('hidden');
+                    if (dropdown.classList.contains('active-menu')) {
+                        dropdown.classList.remove('active-menu');
                     } else {
-                        if (profileDrop) profileDrop.classList.add('hidden');
+                        if (profileDrop) profileDrop.classList.remove('active-menu');
                         renderNotificationsList();
-                        dropdown.classList.remove('hidden');
+                        dropdown.classList.add('active-menu');
                         if (badge) {
                             badge.innerText = '0';
                             badge.classList.add('hidden');
@@ -2719,32 +2718,34 @@
                 }
             });
         }
-        // Клик по профилю — toggle выпадающего меню профиля
-        var profileMenu = document.getElementById('profile-menu-container');
-        if (profileMenu) {
-            profileMenu.addEventListener('click', function(e) {
+        // Клик по профилю — toggle с анимацией
+        var profileWrapper = document.getElementById('profile-wrapper');
+        if (profileWrapper) {
+            profileWrapper.addEventListener('click', function(e) {
                 e.stopPropagation();
                 var notificationDrop = document.getElementById('notification-dropdown');
                 var drop = document.getElementById('profile-dropdown');
                 if (drop) {
-                    if (drop.classList.contains('hidden')) {
-                        if (notificationDrop) notificationDrop.classList.add('hidden');
+                    if (drop.classList.contains('active-menu')) {
+                        drop.classList.remove('active-menu');
+                    } else {
+                        if (notificationDrop) notificationDrop.classList.remove('active-menu');
+                        drop.classList.add('active-menu');
                     }
-                    drop.classList.toggle('hidden');
                 }
             });
         }
         // Закрытие обоих меню при клике вне
         document.addEventListener('click', function(e) {
             var notifDrop = document.getElementById('notification-dropdown');
-            var bellContainer = document.getElementById('notification-bell-container');
+            var bellWrap = document.getElementById('bell-wrapper');
             var profDrop = document.getElementById('profile-dropdown');
-            var profMenu = document.getElementById('profile-menu-container');
-            if (notifDrop && !notifDrop.classList.contains('hidden') && bellContainer && !bellContainer.contains(e.target)) {
-                notifDrop.classList.add('hidden');
+            var profWrap = document.getElementById('profile-wrapper');
+            if (notifDrop && notifDrop.classList.contains('active-menu') && bellWrap && !bellWrap.contains(e.target)) {
+                notifDrop.classList.remove('active-menu');
             }
-            if (profDrop && !profDrop.classList.contains('hidden') && profMenu && !profMenu.contains(e.target)) {
-                profDrop.classList.add('hidden');
+            if (profDrop && profDrop.classList.contains('active-menu') && profWrap && !profWrap.contains(e.target)) {
+                profDrop.classList.remove('active-menu');
             }
         });
         // Кнопки меню профиля
@@ -2753,7 +2754,7 @@
             dropProfile.addEventListener('click', function() {
                 showPage('profilePage');
                 var drop = document.getElementById('profile-dropdown');
-                if (drop) drop.classList.add('hidden');
+                if (drop) drop.classList.remove('active-menu');
             });
         }
         var dropSettings = document.getElementById('drop-btn-settings');
@@ -2761,7 +2762,7 @@
             dropSettings.addEventListener('click', function() {
                 showPage('settingsPage');
                 var drop = document.getElementById('profile-dropdown');
-                if (drop) drop.classList.add('hidden');
+                if (drop) drop.classList.remove('active-menu');
             });
         }
         var dropLogout = document.getElementById('drop-btn-logout');
