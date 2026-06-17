@@ -116,12 +116,20 @@ CREATE TABLE IF NOT EXISTS public.ticket_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ========== ТАБЛИЦА НАСТРОЕК ПЛАТФОРМЫ (онлайн, etc) ==========
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+INSERT INTO public.platform_settings (key, value) VALUES ('online_counter', '300') ON CONFLICT DO NOTHING;
+
 -- ========== ВКЛЮЧЕНИЕ REALTIME ДЛЯ ТАБЛИЦ ==========
 ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deal_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ticket_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_settings;
 
 -- ========== ОТКЛЮЧЕНИЕ RLS (управление доступом на стороне приложения) ==========
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
@@ -131,6 +139,7 @@ ALTER TABLE public.ratings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.achievements DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deal_messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_stats DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platform_settings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ticket_messages DISABLE ROW LEVEL SECURITY;
 
@@ -162,9 +171,12 @@ INSERT INTO public.reviews (user_login, rating, text, date) VALUES
 ('VioletLover', 5, 'Лучший', CURRENT_DATE - INTERVAL '2 months'),
 ('VioletGuardian', 5, 'Топ', CURRENT_DATE - INTERVAL '1 month'),
 -- 6 именных отзывов авторитетных трейдеров
-('zeiten', 5, 'Отличный сервис, провёл сделку на 50к всё супер быстро!', CURRENT_DATE - INTERVAL '14 days'),
+('zeiten', 4, 'Сделка прошла успешно, но продавец долго не выходил на связь. К гаранту претензий нет, холдирование работает четко. 4 звезды.', CURRENT_DATE - INTERVAL '14 days'),
 ('Monter', 5, 'Лучший гарант в СНГ сегменте, комиссии минимальные.', CURRENT_DATE - INTERVAL '13 days'),
-('milawka38', 5, 'Быстро ответили в поддержке, помогли разобраться с выводом.', CURRENT_DATE - INTERVAL '12 days'),
+('milawka38', 4, 'Сначала залагало пополнение через СБП, испугалась. Но поддержка ответила за 30 секунд и всё зачислила вручную! Сервис надёжный, но за лаг ставлю 4 звезды.', CURRENT_DATE - INTERVAL '12 days'),
 ('777', 5, 'Работаю тут на постоянной основе, холдирование работает честно.', CURRENT_DATE - INTERVAL '11 days'),
-('Imprezza', 5, 'Прекрасный неоновый дизайн и очень удобный личный кабинет.', CURRENT_DATE - INTERVAL '10 days'),
-('HeDViN', 5, 'Все топ, вывели деньги на карту за 5 минут. Рекомендую!', CURRENT_DATE - INTERVAL '9 days');
+('Imprezza', 4, 'Дизайн топ, сделки безопасные. Была задержка на выводе крупных средств, пришлось пообщаться с арбитром. В итоге всё вывели. 4 звезды за ожидание, к безопасности вопросов нет.', CURRENT_DATE - INTERVAL '10 days'),
+('HeDViN', 3, 'Долго не мог пройти верификацию почты, выдавало ошибку. Оператор в тикетах помог решить проблему. Сами сделки проходят отлично, ставлю 3 звезды чисто из-за багов с регистрацией.', CURRENT_DATE - INTERVAL '9 days'),
+('User#834195', 4, 'Ошибся в реквизитах при выводе, транзакция зависла. Пришлось писать в поддержку. Ответили минут через 10, деньги вернули на баланс. Ставлю 4 звезды за долгий ответ.', CURRENT_DATE - INTERVAL '8 days'),
+('User#294105', 3, 'Интерфейс красивый, но на мобилке кнопка создания сделки сначала не нажималась. Перезагрузил страницу — заработало. 3 звезды за баги, но саппорт пообещал исправить.', CURRENT_DATE - INTERVAL '7 days'),
+('User#573921', 4, 'Проводил обмен крипты. Курс немного скаканул пока сделка висела в эскроу. В итоге все завершили, но осадочек остался. 4 звезды.', CURRENT_DATE - INTERVAL '6 days');

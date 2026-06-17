@@ -16,6 +16,7 @@
     let reviews = [];
     let dealMessages = {};
     let fakeOnline = 341;
+    let onlineBaseValue = 300;
     let lastDealsFeedArray = [];
     let isLoginMode = true;
     let isDarkTheme = true;
@@ -1342,6 +1343,38 @@
         if (completedSpan) completedSpan.innerText = systemStats.total_deals || 0;
         let ratingSpan = document.getElementById('ratingValue');
         if (ratingSpan) ratingSpan.innerText = '4.6';
+    }
+
+    async function loadOnlineCounter() {
+        try {
+            var r = await sb.from('platform_settings').select('value').eq('key', 'online_counter').single();
+            if (!r.error && r.data && r.data.value) {
+                var v = parseInt(r.data.value);
+                if (!isNaN(v) && v > 0) {
+                    onlineBaseValue = v;
+                    fakeOnline = v;
+                }
+            }
+        } catch (e) {
+            console.warn('[Online] Не удалось загрузить счётчик:', e.message);
+        }
+    }
+
+    function subscribeOnlineCounter() {
+        sb.channel('platform-global-settings')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'platform_settings', filter: 'key=eq.online_counter' }, function(payload) {
+                console.log('[Realtime] Обновление онлайна от админа:', payload.new.value);
+                var newVal = parseInt(payload.new.value);
+                if (!isNaN(newVal) && newVal > 0) {
+                    onlineBaseValue = newVal;
+                    fakeOnline = newVal;
+                    var onlineField = document.getElementById('onlineCount');
+                    if (onlineField) onlineField.innerText = fakeOnline;
+                }
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала platform-global-settings:', status);
+            });
     }
 
     // ===== AUTH =====
@@ -2698,10 +2731,16 @@
         showToast('Спасибо за оценку!');
     }
 
-    function handleSetOnline() {
+    async function handleSetOnline() {
         if (!currentUser || currentUser.role !== 'admin') return;
         var val = parseInt(document.getElementById('fakeOnlineVal').value);
-        if (!isNaN(val) && val > 0) { fakeOnline = val; updateGlobalStats(); showToast('Онлайн: ' + fakeOnline); }
+        if (!isNaN(val) && val > 0) {
+            await sb.from('platform_settings').update({ value: String(val) }).eq('key', 'online_counter');
+            fakeOnline = val;
+            onlineBaseValue = val;
+            updateGlobalStats();
+            showToast('Онлайн: ' + fakeOnline);
+        }
     }
 
     async function handleAddTurnover() {
@@ -2767,7 +2806,7 @@
 
     setInterval(function() {
         var change = Math.floor(Math.random() * 31) - 15;
-        var newOnline = fakeOnline + change;
+        var newOnline = onlineBaseValue + change;
         if (newOnline < 60) newOnline = 60 + Math.random() * 40;
         if (newOnline > 400) newOnline = 350 - Math.random() * 50;
         fakeOnline = Math.floor(newOnline);
@@ -2805,6 +2844,9 @@
             console.log("Точка В: Загружаем данные из БД...");
             await loadAllData();
             console.log("Точка В.1: Данные загружены, users =", users.length, "deals =", deals.length);
+
+            // Загружаем счётчик онлайна из БД
+            await loadOnlineCounter();
 
             // 3. Восстанавливаем пользователя по сессии
             console.log("Точка Г: Восстанавливаем пользователя...");
@@ -2870,6 +2912,7 @@
             // 6. Подключаем Realtime каналы
             console.log('[Realtime] Настройка подписок...');
             setupRealtimeSubscriptions();
+            subscribeOnlineCounter();
 
             // 7.5 Авто-удаление старых закрытых тикетов
             await autoDeleteOldClosedTickets();
