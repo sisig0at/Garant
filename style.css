@@ -1232,3 +1232,19 @@ html, body {
     border-color: rgba(139, 92, 246, 0.8) !important;
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.2) !important;
 }
+
+/* ===== NOTIFICATIONS SCROLLBAR ===== */
+#notifications-list::-webkit-scrollbar {
+    width: 6px !important;
+}
+#notifications-list::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+#notifications-list::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3) !important;
+    border-radius: 10px !important;
+    transition: background 0.2s !important;
+}
+#notifications-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.6) !important;
+}

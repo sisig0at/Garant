@@ -2786,6 +2786,10 @@
         if (profileWrapper) {
             profileWrapper.addEventListener('click', function(e) {
                 e.stopPropagation();
+                // Если клик по кнопке внутри дропдауна — не трогаем, они закрывают меню сами
+                if (e.target.closest('#drop-btn-profile, #drop-btn-settings, #drop-btn-logout')) {
+                    return;
+                }
                 var notificationDrop = document.getElementById('notification-dropdown');
                 var drop = document.getElementById('profile-dropdown');
                 if (drop) {
