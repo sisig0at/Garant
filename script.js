@@ -21,6 +21,15 @@
     let isDarkTheme = true;
     let systemStats = { total_deals: 0, total_turnover: 0 };
     window.appNotifications = [];
+    const statusTranslations = {
+        'opened': 'Открыта',
+        'escrow': 'Заморожена (Гарант)',
+        'escroy': 'Заморожена (Гарант)',
+        'dispute': 'Арбитраж / Спор',
+        'completed': 'Успешно завершена',
+        'closed': 'Закрыта',
+        'cancelled': 'Отменена'
+    };
     window.adminCurrentUsersPage = 1;
     let currentDealId = null;
     window.isAdmin = false;
@@ -59,7 +68,7 @@
     }
 
     function showNotification(text) {
-        window.appNotifications.unshift({ text: text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        window.appNotifications.unshift({ text: text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) });
         if (window.appNotifications.length > 4) window.appNotifications.pop();
         renderNotificationsList();
         var container = document.getElementById('toast-container');
@@ -1067,7 +1076,7 @@
         currentDealId = dealId;
         document.getElementById('mainContent').classList.add('hidden');
         document.getElementById('singleDealPage').classList.remove('hidden');
-        window.location.hash = 'page-deal_' + dealId;
+        window.location.hash = 'deal-' + dealId;
         loadSingleDealPage(dealId);
     }
 
@@ -1329,7 +1338,9 @@
                     if (idx !== -1) deals[idx] = d;
                     loadSingleDealPage(d.id);
                     console.log('[Realtime] Статус сделки #' + d.id + ' обновлён:', d.status);
-                    showNotification('🔔 Статус вашей сделки #' + d.id + ' изменён на "' + d.status + '"');
+                    var rawStatus = d.status || '';
+                    var translatedStatus = statusTranslations[rawStatus.toLowerCase()] || rawStatus;
+                    showNotification('🔔 Статус вашей сделки #' + d.id + ' изменён на "' + translatedStatus + '"');
                 }
             })
             .subscribe(function(status) {
@@ -1471,7 +1482,7 @@
             .on('broadcast', { event: 'broadcast' }, function(payload) {
                 if (payload && (payload.message || payload.text)) {
                     var msg = payload.message || payload.text;
-                    window.appNotifications.unshift({ text: '📢 ' + msg, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+                    window.appNotifications.unshift({ text: '📢 ' + msg, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) });
                     if (window.appNotifications.length > 4) window.appNotifications.pop();
                     var list = document.getElementById('notifications-list');
                     if (list) {
@@ -2666,8 +2677,8 @@
         if (hash.indexOf('page-') === 0) {
             hash = hash.substring(5);
         }
-        if (hash.indexOf('deal_') === 0) {
-            var dealId = parseInt(hash.split('_')[1]);
+        if (hash.indexOf('deal-') === 0) {
+            var dealId = parseInt(hash.split('-')[1]);
             if (deals.find(function(d) { return d.id == dealId; })) {
                 showPage('dealsPage');
                 showSingleDeal(dealId);
