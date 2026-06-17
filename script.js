@@ -947,9 +947,22 @@
             var pageUsers = users.slice(startIndex, endIndex);
 
             userListDiv.innerHTML = pageUsers.map(function(u) {
-                return '<div style="background:#0a0418;margin:5px;padding:10px;border-radius:20px;display:flex;justify-content:space-between;">' +
-                    '<span>' + escapeHtml(u.login) + ' (' + u.role + ') | Баланс:' + (u.balance || 0) + '₽ | Доверие: ' + getTrustPercent(u) + '% ' + (u.banned ? '🔴 БАН' : '') + '</span>' +
-                    '<button class="banAdmin" data-login="' + escapeHtml(u.login) + '">' + (u.banned ? 'Разбан' : 'Бан') + '</button></div>';
+                return '<div style="background:rgba(15,12,22,0.7);margin:6px 0;padding:10px 14px;border-radius:10px;border:1px solid rgba(139,92,246,0.08);display:flex;justify-content:space-between;align-items:center;">' +
+                    '<div>' +
+                        '<strong style="color:#e2e8f0;font-size:14px;">' + escapeHtml(u.login) + '</strong>' +
+                        (u.role === 'admin' ? ' <span style="color:#c084fc;font-size:12px;">👑 Администратор</span>' : '') +
+                        '<div style="font-size:12px;color:#9ca3af;margin-top:4px;">' +
+                            'Баланс: <span style="color:#34d399;font-weight:bold;">' + (u.balance || 0).toLocaleString() + ' ₽</span>' +
+                            ' | Доверие: ' + getTrustPercent(u) + '%' +
+                            (u.banned ? ' <span style="color:#ef4444;">🔴 Забанен</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                        '<button data-action="add-balance" data-login="' + escapeHtml(u.login) + '" style="padding:6px 10px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:#a78bfa;font-size:12px;cursor:pointer;transition:0.2s;">💸 Начислить</button>' +
+                        '<button data-action="promote" data-login="' + escapeHtml(u.login) + '" style="padding:6px 10px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:6px;color:#a78bfa;font-size:12px;cursor:pointer;transition:0.2s;">👑 Права</button>' +
+                        '<button data-action="ban" data-login="' + escapeHtml(u.login) + '" style="padding:6px 10px;background:' + (u.banned ? 'rgba(239,68,68,0.15)' : 'rgba(139,92,246,0.1)') + ';border:1px solid ' + (u.banned ? 'rgba(239,68,68,0.4)' : 'rgba(139,92,246,0.3)') + ';border-radius:6px;color:' + (u.banned ? '#f87171' : '#a78bfa') + ';font-size:12px;cursor:pointer;transition:0.2s;">🚫 ' + (u.banned ? 'Разбан' : 'Бан') + '</button>' +
+                    '</div>' +
+                '</div>';
             }).join('');
 
             renderUsersPagination(users.length);
@@ -2025,23 +2038,41 @@
 
         // Admin (только для администраторов)
         if (currentUser && (currentUser.role === 'admin' || window.isAdmin)) {
-            if (target.closest('#adminAddBalance')) { handleAdminAddBalance(); return; }
-            if (target.closest('#adminSetBalance')) { handleAdminSetBalance(); return; }
-            if (target.closest('#adminPromote')) { handleAdminPromote(); return; }
-            if (target.closest('#adminBan')) { handleAdminBan(); return; }
             if (target.closest('#setOnline')) { handleSetOnline(); return; }
             if (target.closest('#addTurnover')) { handleAddTurnover(); return; }
             if (target.closest('#setRatingBtn')) { handleSetRating(); return; }
             if (target.closest('#setCompletedBtn')) { handleSetCompleted(); return; }
             if (target.closest('#sendBroadcast')) { handleSendBroadcast(); return; }
 
-            var banBtn = target.closest('.banAdmin');
-            if (banBtn) {
-                var ulogin = banBtn.dataset.login;
-                var u = users.find(function(x) { return x.login === ulogin; });
-                if (u && u.id) {
+            // Inline action buttons in user list (data-action)
+            var actionBtn = target.closest('[data-action]');
+            if (actionBtn) {
+                var action = actionBtn.dataset.action;
+                var login = actionBtn.dataset.login;
+                var u = users.find(function(x) { return x.login === login; });
+                if (!u || !u.id) { showToast('Пользователь не найден'); return; }
+                if (action === 'add-balance') {
+                    var amount = prompt('Введите сумму начисления для ' + login + ':');
+                    if (amount !== null && !isNaN(parseInt(amount)) && parseInt(amount) > 0) {
+                        u.balance = (u.balance || 0) + parseInt(amount);
+                        upsertUser(u).then(function() {
+                            if (currentUser && currentUser.login === login) currentUser.balance = u.balance;
+                            updateUI(); renderAdminPanel();
+                            showToast('Начислено ' + amount + '₽ ' + login);
+                        });
+                    }
+                } else if (action === 'promote') {
+                    if (confirm('Сделать ' + login + ' администратором?')) {
+                        u.role = 'admin';
+                        upsertUser(u).then(function() {
+                            if (currentUser && currentUser.login === login) currentUser.role = 'admin';
+                            updateUI(); renderAdminPanel();
+                            showToast(login + ' теперь администратор');
+                        });
+                    }
+                } else if (action === 'ban') {
                     u.banned = !u.banned;
-                    upsertUser(u).then(function(s) {
+                    upsertUser(u).then(function() {
                         if (currentUser && currentUser.login === u.login && u.banned) logout();
                         renderAdminPanel();
                         showToast(u.login + ' ' + (u.banned ? 'забанен' : 'разбанен'));
@@ -2088,12 +2119,6 @@
                     var userListDiv = document.getElementById('userListAdmin');
                     if (userListDiv) userListDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-                return;
-            }
-
-            // Reset DB (admin)
-            if (target.closest('#resetDB')) {
-                if (confirm('Сбросить все данные?')) resetAllData();
                 return;
             }
 
@@ -2402,75 +2427,6 @@
         showToast('Спасибо за оценку!');
     }
 
-    async function handleAdminAddBalance() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        var login = document.getElementById('adminLogin').value.trim();
-        var amt = parseInt(document.getElementById('adminAmount').value);
-        var u = users.find(function(x) { return x.login === login; });
-        if (u && !isNaN(amt) && u.id) {
-            u.balance = (u.balance || 0) + amt;
-            var saved = await upsertUser(u);
-            if (saved) {
-                if (currentUser && currentUser.login === login) currentUser.balance = saved.balance;
-                updateUI();
-                renderAdminPanel();
-                showToast('Начислено ' + amt + '₽ ' + login);
-            } else {
-                showToast('Ошибка обновления пользователя в БД');
-            }
-        } else {
-            showToast('Пользователь не найден или некорректная сумма');
-        }
-    }
-
-    async function handleAdminSetBalance() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        var login = document.getElementById('adminLogin').value.trim();
-        var amt = parseInt(document.getElementById('adminAmount').value);
-        var u = users.find(function(x) { return x.login === login; });
-        if (u && !isNaN(amt) && u.id) {
-            u.balance = amt;
-            var saved = await upsertUser(u);
-            if (saved) {
-                if (currentUser && currentUser.login === login) currentUser.balance = amt;
-                updateUI();
-                renderAdminPanel();
-                showToast('Баланс ' + login + ' = ' + amt + '₽');
-            }
-        }
-    }
-
-    async function handleAdminPromote() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        var login = document.getElementById('adminLogin').value.trim();
-        var u = users.find(function(x) { return x.login === login; });
-        if (u && u.id) {
-            u.role = 'admin';
-            var saved = await upsertUser(u);
-            if (saved) {
-                if (currentUser && currentUser.login === login) currentUser.role = 'admin';
-                updateUI();
-                renderAdminPanel();
-                showToast(login + ' теперь администратор');
-            }
-        }
-    }
-
-    async function handleAdminBan() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        var login = document.getElementById('adminLogin').value.trim();
-        var u = users.find(function(x) { return x.login === login; });
-        if (u && u.id) {
-            u.banned = !u.banned;
-            var saved = await upsertUser(u);
-            if (saved) {
-                if (currentUser && currentUser.login === login && u.banned) logout();
-                renderAdminPanel();
-                showToast(u.login + ' ' + (u.banned ? 'забанен' : 'разбанен'));
-            }
-        }
-    }
-
     function handleSetOnline() {
         if (!currentUser || currentUser.role !== 'admin') return;
         var val = parseInt(document.getElementById('fakeOnlineVal').value);
@@ -2521,37 +2477,6 @@
         showNotification('📢 Рассылка: ' + msg);
         showToast('📢 Рассылка отправлена всем пользователям');
         document.getElementById('broadcastMsg').value = '';
-    }
-
-    async function resetAllData() {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        for (var i = 0; i < users.length; i++) {
-            await sb.from('users').delete().eq('id', users[i].id);
-        }
-        for (var j = 0; j < deals.length; j++) {
-            await sb.from('deal_messages').delete().eq('deal_id', deals[j].id);
-            await sb.from('ratings').delete().eq('deal_id', deals[j].id);
-            await sb.from('deals').delete().eq('id', deals[j].id);
-        }
-        for (var k = 0; k < reviews.length; k++) {
-            await sb.from('reviews').delete().eq('id', reviews[k].id);
-        }
-        var allAchievements = await sb.from('achievements').select('id');
-        if (allAchievements.data) {
-            for (var a = 0; a < allAchievements.data.length; a++) {
-                await sb.from('achievements').delete().eq('id', allAchievements.data[a].id);
-            }
-        }
-        users = [];
-        deals = [];
-        reviews = [];
-        dealMessages = {};
-        currentUser = null;
-        updateUI();
-        renderDeals();
-        renderReviews();
-        renderAdminPanel();
-        showToast('Все данные сброшены');
     }
 
     function botReply(q) {
@@ -2903,6 +2828,29 @@
                 showToast('Пароль успешно изменён');
             });
         }
+
+        // Admin tabs switcher
+        var adminTabs = document.querySelector('.admin-tabs');
+        if (adminTabs) {
+            adminTabs.addEventListener('click', function(e) {
+                var btn = e.target.closest('.admin-tab-btn');
+                if (!btn) return;
+                document.querySelectorAll('.admin-tab-btn').forEach(function(b) {
+                    b.style.background = 'none';
+                    b.style.borderColor = 'transparent';
+                    b.style.color = '#9ca3af';
+                });
+                btn.style.background = 'rgba(139,92,246,0.1)';
+                btn.style.borderColor = '#8b5cf6';
+                btn.style.color = '#fff';
+                document.querySelectorAll('[id^="admin-tab-"]').forEach(function(t) {
+                    t.classList.add('hidden');
+                });
+                var target = document.getElementById(btn.dataset.target);
+                if (target) target.classList.remove('hidden');
+            });
+        }
+
         initApp();
     });
 })();
