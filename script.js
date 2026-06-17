@@ -1354,9 +1354,11 @@
         }
 
         try {
-            var r = await sb.from('platform_settings').select('value').eq('key', 'online_counter').single();
-            if (!r.error && r.data && r.data.value) {
-                var v = parseInt(r.data.value);
+            var r = await sb.from('platform_settings').select('value').eq('key', 'online_counter');
+            if (r.error) {
+                console.log("🚨 КРИТИЧЕСКАЯ ОШИБКА SUPABASE ОНЛАЙНА:", r.error.message, r.error.details, r.error.hint);
+            } else if (r.data && r.data.length > 0 && r.data[0].value) {
+                var v = parseInt(r.data[0].value);
                 if (!isNaN(v) && v > 0) {
                     onlineBaseValue = v;
                     fakeOnline = v;
@@ -1364,11 +1366,11 @@
                     if (onlineField) onlineField.innerText = String(v);
                 }
             } else {
-                console.error('[Online] Ошибка или пустое значение в БД:', r.error);
+                console.log("🚨 Нет данных в platform_settings для online_counter:", JSON.stringify(r.data));
                 if (!cachedOnline && onlineField) onlineField.innerText = '300';
             }
         } catch (e) {
-            console.error('[Online] Критическая ошибка запроса:', e.message);
+            console.log("🚨 КРИТИЧЕСКАЯ ОШИБКА ЗАПРОСА ОНЛАЙНА:", e.message, e.stack);
         }
     }
 
