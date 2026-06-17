@@ -68,6 +68,22 @@
     }
 
     function showNotification(text) {
+        try {
+            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.25);
+        } catch (e) {
+            console.log("Звук заблокирован политикой браузера до первого клика.");
+        }
         window.appNotifications.unshift({ text: text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) });
         if (window.appNotifications.length > 4) window.appNotifications.pop();
         renderNotificationsList();
@@ -607,6 +623,36 @@
         }
 
         await renderAchievements();
+
+        var chartCtx = document.getElementById('adminAnalyticsChart');
+        if (chartCtx && typeof Chart !== 'undefined') {
+            if (window.myLiveChart) window.myLiveChart.destroy();
+            window.myLiveChart = new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'],
+                    datasets: [{
+                        label: 'Завершено сделок (число)',
+                        data: [4, 7, 5, 9, 6, 11, 8],
+                        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                        borderColor: '#a78bfa',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        hoverBackgroundColor: 'rgba(139, 92, 246, 0.4)',
+                        hoverBorderColor: '#c084fc'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#6b7280' } },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 } } }
+                    }
+                }
+            });
+        }
     }
 
     async function renderAchievements() {
@@ -3000,7 +3046,6 @@
                 if (targetPane) targetPane.classList.remove('hidden');
             });
         });
-        }
         // Сохранение настроек профиля (ник, био, аватар через Supabase Storage)
         var saveSettingsBtn = document.getElementById('saveProfileSettings');
         if (saveSettingsBtn) {
