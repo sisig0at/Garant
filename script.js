@@ -209,6 +209,21 @@
         if (!r2.error && r2.data) deals = r2.data;
         let r3 = await sb.from('reviews').select('*').order('id', { ascending: true });
         if (!r3.error && r3.data) reviews = r3.data;
+        // Принудительный сид 6 именных отзывов авторитетных трейдеров, если их нет в БД
+        var seedReviews = [
+            { user_login: 'zeiten', rating: 5, text: 'Отличный сервис, провёл сделку на 50к всё супер быстро!', date: '2026-06-01' },
+            { user_login: 'Monter', rating: 5, text: 'Лучший гарант в СНГ сегменте, комиссии минимальные.', date: '2026-06-01' },
+            { user_login: 'milawka38', rating: 5, text: 'Быстро ответили в поддержке, помогли разобраться с выводом.', date: '2026-06-01' },
+            { user_login: '777', rating: 5, text: 'Работаю тут на постоянной основе, холдирование работает честно.', date: '2026-06-01' },
+            { user_login: 'Imprezza', rating: 5, text: 'Прекрасный неоновый дизайн и очень удобный личный кабинет.', date: '2026-06-01' },
+            { user_login: 'HeDViN', rating: 5, text: 'Все топ, вывели деньги на карту за 5 минут. Рекомендую!', date: '2026-06-01' }
+        ];
+        var existingLogins = reviews.map(function(r) { return r.user_login; });
+        seedReviews.forEach(function(sr) {
+            if (existingLogins.indexOf(sr.user_login) === -1) {
+                reviews.push(sr);
+            }
+        });
         let r4 = await sb.from('deal_messages').select('*').order('id', { ascending: true });
         if (!r4.error && r4.data) {
             dealMessages = {};
@@ -663,12 +678,27 @@
                 else if (found.role === 'seller') authorRole = 'Продавец';
             }
 
-            // Анонимизация
+            // Анонимизация + защита личной аватарки текущего пользователя
             var whitelistAuthors = ['zeiten', 'Monter', 'milawka38', '777', 'Imprezza', 'HeDViN'];
             var displayAuthor = authorName;
             var displayRole = authorRole;
             var displayAvatar = '';
-            if (whitelistAuthors.indexOf(r.user_login) === -1 && r.user_login.indexOf('User#') !== 0) {
+            var isCurrentUser = currentUser && r.user_login === currentUser.login;
+
+            if (whitelistAuthors.indexOf(r.user_login) !== -1 || isCurrentUser || r.user_login.indexOf('User#') === 0) {
+                // Не анонимизируем: автор в белом списке, это текущий пользователь или уже скрыт
+                if (isCurrentUser) {
+                    // Берём реальные данные текущего пользователя
+                    displayAuthor = currentUser.nickname || currentUser.login;
+                    if (currentUser.role === 'admin') displayRole = 'администратор';
+                    else if (currentUser.role === 'moderator') displayRole = 'модератор';
+                    else if (currentUser.role === 'seller') displayRole = 'продавец';
+                    else displayRole = 'пользователь';
+                    displayAvatar = currentUser.avatar_url || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff');
+                } else {
+                    displayAvatar = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff';
+                }
+            } else {
                 var hash = 0;
                 for (var i = 0; i < r.user_login.length; i++) {
                     hash = r.user_login.charCodeAt(i) + ((hash << 5) - hash);
@@ -677,8 +707,6 @@
                 displayAuthor = 'User#' + finalId;
                 displayRole = Math.random() > 0.5 ? 'покупатель' : 'продавец';
                 displayAvatar = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + finalId + '&backgroundColor=6d28d9';
-            } else {
-                displayAvatar = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff';
             }
             var card = document.createElement('div');
             card.className = 'review-card';

@@ -160,4 +160,11 @@ INSERT INTO public.reviews (user_login, rating, text, date) VALUES
 ('CryptoGuru', 5, 'Быстро', CURRENT_DATE - INTERVAL '4 months'),
 ('KingOfDeals', 5, 'Чётко', CURRENT_DATE - INTERVAL '3 months'),
 ('VioletLover', 5, 'Лучший', CURRENT_DATE - INTERVAL '2 months'),
-('VioletGuardian', 5, 'Топ', CURRENT_DATE - INTERVAL '1 month');
+('VioletGuardian', 5, 'Топ', CURRENT_DATE - INTERVAL '1 month'),
+-- 6 именных отзывов авторитетных трейдеров
+('zeiten', 5, 'Отличный сервис, провёл сделку на 50к всё супер быстро!', CURRENT_DATE - INTERVAL '14 days'),
+('Monter', 5, 'Лучший гарант в СНГ сегменте, комиссии минимальные.', CURRENT_DATE - INTERVAL '13 days'),
+('milawka38', 5, 'Быстро ответили в поддержке, помогли разобраться с выводом.', CURRENT_DATE - INTERVAL '12 days'),
+('777', 5, 'Работаю тут на постоянной основе, холдирование работает честно.', CURRENT_DATE - INTERVAL '11 days'),
+('Imprezza', 5, 'Прекрасный неоновый дизайн и очень удобный личный кабинет.', CURRENT_DATE - INTERVAL '10 days'),
+('HeDViN', 5, 'Все топ, вывели деньги на карту за 5 минут. Рекомендую!', CURRENT_DATE - INTERVAL '9 days');
