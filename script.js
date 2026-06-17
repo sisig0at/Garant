@@ -638,21 +638,59 @@
         if (newPwd) newPwd.value = '';
     }
 
+    function shuffleArray(array) {
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = array[i];
+            array[i] = array[j];
+            array[j] = tmp;
+        }
+        return array;
+    }
+
+    function maskPartnerName(name) {
+        if (!name || name.indexOf('User#') === 0) return name;
+        if (currentUser && (name === currentUser.nickname || name === currentUser.login)) return name;
+        return name[0] + name[1] + '***' + name[name.length - 1];
+    }
+
+    var dealStatusMap = {
+        'opened': { text: 'Открыта', color: '#60a5fa' },
+        'escrow': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
+        'escroy': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
+        'dispute': { text: 'Арбитраж / Спор', color: '#f87171' },
+        'completed': { text: 'Завершена успешно', color: '#34d399' },
+        'closed': { text: 'Закрыта', color: '#9ca3af' },
+        'cancelled': { text: 'Отменена', color: '#9ca3af' }
+    };
+
     async function renderDeals() {
-        let container = document.getElementById('allDealsList');
+        var container = document.getElementById('allDealsList');
         if (!container) return;
-        let myDeals = currentUser ? deals.filter(function(d) {
+        container.innerHTML = '';
+        var myDeals = currentUser ? deals.filter(function(d) {
             return d.seller === currentUser.login || d.buyer === currentUser.login;
         }) : [];
+        if (myDeals.length === 0) {
+            container.innerHTML = '<p style="color:#888;text-align:center;">У вас пока нет сделок.</p>';
+            return;
+        }
         container.innerHTML = myDeals.map(function(d) {
-            var html = '<div class="deal-item" data-id="' + d.id + '">' +
-                '<div><strong>' + escapeHtml(d.item) + '</strong> | ID:' + d.id + ' | ' + (d.amount || 0).toLocaleString() + ' ₽' +
-                '<br>' + escapeHtml(d.seller) + ' → ' + escapeHtml(d.buyer) + ' | Статус: ' + getStatusText(d.status);
-            if (d.status === 'completed') {
-                html += '<button class="deleteDealBtn" data-id="' + d.id + '" style="background:#d32f2f;">Удалить</button>';
-            }
-            html += '</div></div>';
-            return html;
+            var statusInfo = dealStatusMap[d.status] || { text: d.status, color: '#e2e8f0' };
+            var maskedBuyer = maskPartnerName(d.buyer);
+            var maskedSeller = maskPartnerName(d.seller);
+            return '<div class="user-deal-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(139,92,246,0.15);border-radius:12px;padding:18px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:15px;box-shadow:0 4px 15px rgba(0,0,0,0.2);">' +
+                '<div style="display:flex;flex-direction:column;gap:6px;text-align:left;">' +
+                    '<div style="font-size:16px;font-weight:bold;color:#fff;">📦 ' + escapeHtml(d.item || 'Сделка без названия') + '</div>' +
+                    '<div style="font-size:13px;color:#9ca3af;">Участники: <span style="color:#a78bfa;">' + escapeHtml(maskedBuyer) + '</span> (покупатель) и <span style="color:#a78bfa;">' + escapeHtml(maskedSeller) + '</span> (продавец)</div>' +
+                    '<div style="font-size:13px;color:#9ca3af;">Статус: <span style="color:' + statusInfo.color + ';font-weight:bold;">' + statusInfo.text + '</span></div>' +
+                '</div>' +
+                '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">' +
+                    '<div style="font-size:18px;font-weight:bold;color:#34d399;">' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
+                    '<button onclick="window.location.hash=\'#deal-' + d.id + '\'" style="padding:6px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.4);border-radius:6px;color:#c084fc;font-size:12px;font-weight:bold;cursor:pointer;transition:0.2s;" onmouseover="this.style.background=\'rgba(139,92,246,0.25)\'" onmouseout="this.style.background=\'rgba(139,92,246,0.1)\'">💬 Открыть чат</button>' +
+                    (d.status === 'completed' ? '<button class="deleteDealBtn" data-id="' + d.id + '" style="padding:4px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#f87171;font-size:11px;cursor:pointer;">Удалить</button>' : '') +
+                '</div>' +
+            '</div>';
         }).join('');
     }
 
@@ -660,7 +698,7 @@
         let container = document.getElementById('reviewsList');
         if (!container) return;
         container.innerHTML = '';
-        var items = reviews.slice().reverse();
+        var items = shuffleArray(reviews.slice());
         if (items.length === 0) {
             container.innerHTML = '<p style="color:#888;text-align:center;">Отзывов пока нет.</p>';
             return;
