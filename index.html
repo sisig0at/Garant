@@ -29,6 +29,10 @@
         <div class="user-info">
             <i class="fas fa-user-circle"></i> <span id="userNameDisplay">Гость</span>
             <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
+            <div id="notification-bell" style="position:relative; margin-left:10px; cursor:pointer; display:none;">
+                <i class="fas fa-bell"></i>
+                <span id="bell-badge" style="display:none; position:absolute; top:-8px; right:-10px; background:red; color:white; font-size:10px; padding:1px 5px; border-radius:50%;">0</span>
+            </div>
             <button id="authBtn" class="premium-auth-btn"><i class="fas fa-sign-in-alt"></i> <span>Вход</span></button>
             <button id="themeToggle" class="theme-btn" title="Сменить тему"><i class="fas fa-moon"></i></button>
         </div>
@@ -196,6 +200,7 @@
                 <div id="adminTicketChatArea" style="display:none;">
                     <div id="adminTicketChatHeader" style="margin-bottom:10px; font-weight:bold;"></div>
                     <div class="chat-messages" id="adminTicketChatMessages"></div>
+                    <div id="admin-fast-templates" style="display:none; gap:8px; margin-bottom:8px; flex-wrap:wrap;"></div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="adminTicketChatInput" placeholder="Ответ..." style="flex:1;"><button id="adminTicketChatSendBtn">Отправить</button><button id="adminCloseTicketBtn" style="background:#d32f2f;">Закрыть обращение</button></div>
                 </div>
             </div>
@@ -271,6 +276,7 @@
 <div id="infoModal" class="modal"><div class="modal-content"><h3 id="infoModalTitle"></h3><p id="infoModalText" style="margin:20px 0; line-height:1.5;"></p><button id="closeInfoModal">Закрыть</button></div></div>
 <div id="ticketModal" class="modal"><div class="modal-content"><h3><i class="fas fa-ticket-alt"></i> Новое обращение</h3><input id="ticketSubject" placeholder="Тема обращения"><textarea id="ticketMessage" rows="4" placeholder="Опишите вашу проблему..."></textarea><button id="ticketSubmitBtn" style="width:100%;">Отправить</button><button id="closeTicketModal" style="margin-top:10px; background:#2a1a5a; width:100%;">Отмена</button></div></div>
 
+<div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
 <script src="config.js" defer></script>
 <script src="script.js" defer></script>
 </body>

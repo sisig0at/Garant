@@ -58,6 +58,29 @@
         setTimeout(function() { t.remove(); }, 3000);
     }
 
+    function showNotification(title, message) {
+        var container = document.getElementById('toast-container');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.style.cssText = 'background:#2a1a5a; color:#fff; padding:12px 16px; border-radius:8px; border-left:4px solid #c084fc; box-shadow:0 4px 12px rgba(0,0,0,0.3); min-width:280px; max-width:360px; opacity:0; transition:opacity 0.3s ease;';
+        toast.innerHTML = '<div style="font-weight:bold; margin-bottom:4px;">' + title + '</div><div style="font-size:13px; opacity:0.9;">' + message + '</div>';
+        container.appendChild(toast);
+        setTimeout(function() { toast.style.opacity = '1'; }, 10);
+        var badge = document.getElementById('bell-badge');
+        if (badge) {
+            var count = parseInt(badge.innerText) || 0;
+            count++;
+            badge.innerText = count;
+            badge.style.display = 'inline';
+            var bell = document.getElementById('notification-bell');
+            if (bell) bell.style.display = 'inline-flex';
+        }
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 4000);
+    }
+
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -618,6 +641,26 @@
         if (input) input.disabled = ticket.status === 'closed';
         let sendBtn = document.getElementById('adminTicketChatSendBtn');
         if (sendBtn) sendBtn.disabled = ticket.status === 'closed';
+        renderAdminFastTemplates();
+    }
+
+    function renderAdminFastTemplates() {
+        var container = document.getElementById('admin-fast-templates');
+        if (!container) return;
+        if (!currentUser || currentUser.role !== 'admin') {
+            container.style.display = 'none';
+            return;
+        }
+        var templates = [
+            { label: '👋 Приветствие', text: 'Здравствуйте! Чем я могу вам помочь?' },
+            { label: '📸 Скриншот', text: 'Пожалуйста, предоставьте скриншот операции/чека для проверки.' },
+            { label: '⏳ Ожидание', text: 'Ваша заявка находится на рассмотрении. Ожидайте, пожалуйста.' },
+            { label: '✅ Вывод', text: 'Выплата успешно произведена на указанные вами реквизиты.' }
+        ];
+        container.innerHTML = templates.map(function(t) {
+            return '<button class="template-btn" data-text="' + escapeHtml(t.text) + '" style="background:#3b1f6e; color:#fff; border:1px solid #6d28d9; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12px; transition:background 0.2s;">' + t.label + '</button>';
+        }).join('');
+        container.style.display = 'flex';
     }
 
     async function autoDeleteOldClosedTickets() {
@@ -1104,6 +1147,7 @@
                     if (idx !== -1) deals[idx] = d;
                     loadSingleDealPage(d.id);
                     console.log('[Realtime] Статус сделки #' + d.id + ' обновлён:', d.status);
+                    showNotification('Статус сделки', 'Статус вашей сделки #' + d.id + ' изменён на "' + d.status + '"');
                 }
             })
             .subscribe(function(status) {
@@ -1159,10 +1203,16 @@
                         supportTickets.unshift(t);
                         recalcOpenTicketCount();
                     }
+                    if (currentUser && currentUser.role === 'admin') {
+                        showNotification('Новое обращение', 'Пользователь создал обращение: "' + t.subject + '"');
+                    }
                 } else if (payload.eventType === 'UPDATE') {
                     var idx = supportTickets.findIndex(function(x) { return x.id === t.id; });
                     if (idx !== -1) supportTickets[idx] = t;
                     recalcOpenTicketCount();
+                    if (currentUser && String(currentUser.id) === String(t.user_id) && t.status === 'closed') {
+                        showNotification('Обращение закрыто', 'Ваше обращение "' + t.subject + '" было закрыто');
+                    }
                 } else if (payload.eventType === 'DELETE') {
                     supportTickets = supportTickets.filter(function(x) { return x.id !== payload.old.id; });
                     delete supportTicketMessages[payload.old.id];
@@ -1194,6 +1244,16 @@
                     }
                     if (userCurrentTicketId === msg.ticket_id) {
                         renderUserTicketChat(msg.ticket_id);
+                    }
+                    if (currentUser && msg.sender_role !== 'system') {
+                        var ticket = supportTickets.find(function(x) { return x.id === msg.ticket_id; });
+                        if (ticket) {
+                            if (currentUser.role === 'admin' && msg.sender_role !== 'admin') {
+                                showNotification('Новое сообщение', 'Новое сообщение в обращении "' + ticket.subject + '"');
+                            } else if (currentUser.role !== 'admin' && msg.sender_role === 'admin') {
+                                showNotification('Новое сообщение', 'Поддержка ответила в обращении "' + ticket.subject + '"');
+                            }
+                        }
                     }
                 }
             })
@@ -1767,6 +1827,17 @@
             // Admin ticket chat: close
             if (target.closest('#adminCloseTicketBtn')) {
                 handleAdminCloseTicket();
+                return;
+            }
+
+            // Admin fast templates
+            var templateBtn = target.closest('#admin-fast-templates .template-btn');
+            if (templateBtn) {
+                var input = document.getElementById('adminTicketChatInput');
+                if (input) {
+                    input.value = templateBtn.dataset.text;
+                    input.focus();
+                }
                 return;
             }
 
@@ -2401,6 +2472,17 @@
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleAdminTicketSend();
+                }
+            });
+        }
+        // Клик по колокольчику — сброс уведомлений
+        var bell = document.getElementById('notification-bell');
+        if (bell) {
+            bell.addEventListener('click', function() {
+                var badge = document.getElementById('bell-badge');
+                if (badge) {
+                    badge.innerText = '0';
+                    badge.style.display = 'none';
                 }
             });
         }
