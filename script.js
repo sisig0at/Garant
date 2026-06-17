@@ -62,12 +62,7 @@
     function showNotification(text) {
         window.appNotifications.unshift({ text: text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
         if (window.appNotifications.length > 4) window.appNotifications.pop();
-        var list = document.getElementById('notifications-list');
-        if (list) {
-            list.innerHTML = window.appNotifications.map(function(n) {
-                return '<div style="padding:6px 8px; background:rgba(139,92,246,0.08); border-radius:6px;"><span style="color:#9ca3af; font-size:10px; margin-right:6px;">' + n.time + '</span>' + n.text + '</div>';
-            }).join('');
-        }
+        renderNotificationsList();
         var container = document.getElementById('toast-container');
         if (container) {
             var toast = document.createElement('div');
@@ -89,6 +84,22 @@
             var bellContainer = document.getElementById('notification-bell-container');
             if (bellContainer) bellContainer.style.display = 'flex';
         }
+    }
+
+    function renderNotificationsList() {
+        const listContainer = document.getElementById('notifications-list');
+        if (!listContainer) return;
+        listContainer.innerHTML = '';
+        if (!window.appNotifications || window.appNotifications.length === 0) {
+            listContainer.innerHTML = '<div style="color:#6b7280; text-align:center; padding:15px 0;">Уведомлений нет</div>';
+            return;
+        }
+        window.appNotifications.forEach(function(notif) {
+            const item = document.createElement('div');
+            item.style.cssText = 'padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.05);';
+            item.innerHTML = '<span style="color:#6b7280; font-size:10px; margin-right:5px;">' + notif.time + '</span> ' + notif.text;
+            listContainer.appendChild(item);
+        });
     }
 
     function escapeHtml(str) {
@@ -2698,6 +2709,7 @@
                         dropdown.classList.add('hidden');
                     } else {
                         if (profileDrop) profileDrop.classList.add('hidden');
+                        renderNotificationsList();
                         dropdown.classList.remove('hidden');
                         if (badge) {
                             badge.innerText = '0';
