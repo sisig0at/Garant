@@ -21,8 +21,7 @@
     let isDarkTheme = true;
     let systemStats = { total_deals: 0, total_turnover: 0 };
     window.appNotifications = [];
-    let adminUserPage = 1;
-    let adminUserTotalCount = 0;
+    window.adminCurrentUsersPage = 1;
     let currentDealId = null;
     window.isAdmin = false;
     let supportTickets = [];
@@ -917,18 +916,13 @@
             '<div class="stat-card">Пользователей: ' + users.length + '</div>' +
             '<div class="stat-card">Сделок (реальных): ' + realDealsCount + '</div>';
 
-        // Paginated user list from Supabase
+        // Paginated user list from local users array
         let userListDiv = document.getElementById('userListAdmin');
         if (userListDiv) {
-            var pageSize = 10;
-            var from = (adminUserPage - 1) * pageSize;
-            var to = from + pageSize - 1;
-
-            var countRes = await sb.from('users').select('id', { count: 'exact', head: true });
-            adminUserTotalCount = countRes.count || users.length;
-
-            var listRes = await sb.from('users').select('*').order('id', { ascending: true }).range(from, to);
-            var pageUsers = (!listRes.error && listRes.data) ? listRes.data : [];
+            var itemsPerPage = 10;
+            var startIndex = (window.adminCurrentUsersPage - 1) * itemsPerPage;
+            var endIndex = startIndex + itemsPerPage;
+            var pageUsers = users.slice(startIndex, endIndex);
 
             userListDiv.innerHTML = pageUsers.map(function(u) {
                 return '<div style="background:#0a0418;margin:5px;padding:10px;border-radius:20px;display:flex;justify-content:space-between;">' +
@@ -936,17 +930,7 @@
                     '<button class="banAdmin" data-login="' + escapeHtml(u.login) + '">' + (u.banned ? 'Разбан' : 'Бан') + '</button></div>';
             }).join('');
 
-            // Pagination buttons
-            var totalPages = Math.max(1, Math.ceil(adminUserTotalCount / pageSize));
-            if (totalPages > 1) {
-                var pagHtml = '<div class="admin-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">';
-                for (var p = 1; p <= totalPages; p++) {
-                    var activeClass = p === adminUserPage ? ' style="background:#c084fc;color:#1a0a3a;font-weight:bold;"' : '';
-                    pagHtml += '<button class="admin-page-btn" data-page="' + p + '"' + activeClass + ' style="min-width:36px;padding:6px 12px;border-radius:20px;font-size:13px;background:#2a1a5a;border:1px solid #5b21b6;color:white;cursor:pointer;">' + p + '</button>';
-                }
-                pagHtml += '</div>';
-                userListDiv.innerHTML += pagHtml;
-            }
+            renderUsersPagination(users.length);
         }
 
         await renderAdminDeals();
@@ -957,6 +941,20 @@
             var adminChatArea = document.getElementById('adminTicketChatArea');
             if (adminChatArea) adminChatArea.style.display = 'none';
         }
+    }
+
+    function renderUsersPagination(totalUsers) {
+        var itemsPerPage = 10;
+        var totalPages = Math.max(1, Math.ceil(totalUsers / itemsPerPage));
+        var container = document.getElementById('users-pagination-controls');
+        if (!container) return;
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+        var html = '';
+        for (var p = 1; p <= totalPages; p++) {
+            var active = p === window.adminCurrentUsersPage;
+            html += '<button data-upage="' + p + '" style="min-width:36px;width:36px;height:36px;padding:0;border-radius:50%;font-size:13px;font-weight:bold;cursor:pointer;border:2px solid ' + (active ? '#c084fc' : '#5b21b6') + ';background:' + (active ? '#c084fc' : '#2a1a5a') + ';color:' + (active ? '#1a0a3a' : 'white') + ';transition:all 0.2s;">' + p + '</button>';
+        }
+        container.innerHTML = html;
     }
 
     // ===== ОЧИСТКА ТАБЛИЦЫ DEALS (ДЛЯ АДМИНА) =====
@@ -1225,7 +1223,7 @@
                     ap.classList.remove('hidden-page');
                     ap.classList.remove('hidden');
                 }
-                adminUserPage = 1;
+                window.adminCurrentUsersPage = 1;
                 renderAdminPanel();
                 window.scrollTo(0, 0);
             });
@@ -2043,13 +2041,15 @@
                 return;
             }
 
-            // Admin pagination
-            var pageBtn = target.closest('.admin-page-btn');
+            // Admin pagination for users
+            var pageBtn = target.closest('#users-pagination-controls button[data-upage]');
             if (pageBtn) {
-                var newPage = parseInt(pageBtn.dataset.page);
-                if (newPage && newPage !== adminUserPage) {
-                    adminUserPage = newPage;
+                var newPage = parseInt(pageBtn.dataset.upage);
+                if (newPage && newPage !== window.adminCurrentUsersPage) {
+                    window.adminCurrentUsersPage = newPage;
                     renderAdminPanel();
+                    var userListDiv = document.getElementById('userListAdmin');
+                    if (userListDiv) userListDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 return;
             }
