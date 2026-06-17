@@ -142,6 +142,17 @@
         return obj.nickname || obj.login || '';
     }
 
+    function anonymizeName(name) {
+        if (!name) return 'User#000000';
+        if (name.startsWith('User#')) return name;
+        var hash = 0;
+        for (var i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        var finalId = Math.abs(hash % 900000) + 100000;
+        return 'User#' + finalId;
+    }
+
     function getStatusText(status) {
         return { waiting_payment: 'Ожидание оплаты', escroy: 'Деньги на гаранте', completed: 'Завершена', disputed: 'Диспут' }[status] || status;
     }
@@ -1329,17 +1340,61 @@
         if (!feedDiv || !data) return;
         if (data.length > 0) {
             data.slice().reverse().forEach(function(d) {
-                var entry = escapeHtml(getDisplayName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(getDisplayName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+                var entry = escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
                 lastDealsFeedArray.unshift(entry);
                 if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             });
             feedDiv.innerHTML = data.slice().reverse().map(function(d) {
                 return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
-                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(getDisplayName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(getDisplayName(d.seller)) + '</span> завершили сделку</div>' +
+                    '<div>⚡ <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.buyer)) + '</span> и <span style="color:#a78bfa; font-weight:600;">' + escapeHtml(anonymizeName(d.seller)) + '</span> завершили сделку</div>' +
                     '<div style="font-weight:bold; color:#34d399;">+ ' + (d.amount || 0).toLocaleString() + ' ₽</div>' +
                 '</div>';
             }).join('');
         }
+    }
+
+    function addNewDealToFeedUI(d) {
+        if (!d) return;
+        // Update stats
+        if (d.status === 'completed' && Number(d.amount) > 0) {
+            systemStats.total_turnover = (systemStats.total_turnover || 0) + Number(d.amount);
+            systemStats.total_deals = (systemStats.total_deals || 0) + 1;
+            var totalEl = document.getElementById('totalVolume');
+            if (totalEl) totalEl.innerText = systemStats.total_turnover.toLocaleString('ru-RU') + ' ₽';
+        }
+        // Add to feed
+        var feedDiv = document.getElementById('liveDealsFeed');
+        if (!feedDiv) return;
+        var entry = escapeHtml(anonymizeName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
+        lastDealsFeedArray.unshift(entry);
+        if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
+        feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
+            return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
+                '<div>⚡ ' + t + '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    async function initDealsRealtime() {
+        if (window.myDealsChannel) {
+            await sb.removeChannel(window.myDealsChannel);
+        }
+        window.myDealsChannel = sb
+            .channel('deals-live-feed')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
+                console.log('[Realtime] Новое событие deals:', payload.eventType, payload.new.id, 'is_fake:', payload.new.is_fake, 'status:', payload.new.status);
+                var isNewFake = payload.eventType === 'INSERT' && payload.new.is_fake;
+                var isRealClosed = payload.eventType === 'UPDATE' && !payload.new.is_fake && (payload.new.status === 'closed' || payload.new.status === 'completed');
+                if (isNewFake || isRealClosed) {
+                    if (payload.eventType === 'UPDATE' && !payload.new.is_fake && payload.new.status === 'completed') {
+                        showNotification('✅ Сделка успешно завершена');
+                    }
+                    addNewDealToFeedUI(payload.new);
+                }
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала deals-live-feed:', status);
+            });
     }
 
     function setupRealtimeSubscriptions() {
@@ -1387,43 +1442,7 @@
             });
 
         // ---- Канал для ленты сделок (фейки + закрытые реальные) ----
-        sb.channel('deals-feed')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, function(payload) {
-                var d = payload.new;
-                // Показываем только фейки ИЛИ завершённые реальные сделки
-                if (!d.is_fake && d.status !== 'completed') return;
-                if (payload.eventType === 'UPDATE' && payload.old && payload.old.status === 'completed' && !payload.old.is_fake) return;
-                console.log('[Realtime] Новая сделка в ленту:', d.id, 'is_fake:', d.is_fake, 'status:', d.status);
-                if (d.status === 'completed') {
-                    var amount = Number(d.amount);
-                    if (amount > 0) {
-                        systemStats.total_turnover = (systemStats.total_turnover || 0) + amount;
-                        if (payload.eventType === 'INSERT') {
-                            systemStats.total_deals = (systemStats.total_deals || 0) + 1;
-                        }
-                        var totalEl = document.getElementById('totalVolume');
-                        if (totalEl) {
-                            totalEl.innerText = systemStats.total_turnover.toLocaleString('ru-RU') + ' ₽';
-                        }
-                    }
-                    if (payload.eventType === 'UPDATE') {
-                        showNotification('✅ Сделка успешно завершена');
-                    }
-                }
-                var feedDiv = document.getElementById('liveDealsFeed');
-                if (!feedDiv) return;
-                var entry = escapeHtml(getDisplayName(d.seller)) + ' завершил сделку на ' + (d.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(getDisplayName(d.buyer)) + ' — ' + new Date(d.created_at).toLocaleTimeString();
-                lastDealsFeedArray.unshift(entry);
-                if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
-                feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
-                    return '<div class="deal-item" style="background:rgba(255,255,255,0.03); border:1px solid rgba(139,92,246,0.1); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-size:14px; margin-bottom:8px; color:#e2e8f0;">' +
-                        '<div>⚡ ' + t + '</div>' +
-                    '</div>';
-                }).join('');
-            })
-            .subscribe(function(status) {
-                console.log('[Realtime] Статус канала deals-feed:', status);
-            });
+        initDealsRealtime();
 
         // ---- Канал для чата сделок ----
         sb.channel('deal-messages')
@@ -2290,7 +2309,7 @@
         // Прямое обновление ленты последних сделок (дублирует Realtime для надёжности)
         var feedDiv = document.getElementById('liveDealsFeed');
         if (feedDiv) {
-            var entry = escapeHtml(deal.seller) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(deal.buyer) + ' — ' + new Date().toLocaleTimeString();
+            var entry = escapeHtml(anonymizeName(deal.seller)) + ' завершил сделку на ' + (deal.amount || 0).toLocaleString() + ' ₽ с ' + escapeHtml(anonymizeName(deal.buyer)) + ' — ' + new Date().toLocaleTimeString();
             lastDealsFeedArray.unshift(entry);
             if (lastDealsFeedArray.length > 5) lastDealsFeedArray.pop();
             feedDiv.innerHTML = lastDealsFeedArray.map(function(t) {
