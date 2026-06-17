@@ -1468,7 +1468,28 @@
         sb.channel('global-broadcast')
             .on('broadcast', { event: 'broadcast' }, function(payload) {
                 if (payload && (payload.message || payload.text)) {
-                    showNotification('📢 ' + (payload.message || payload.text));
+                    var msg = payload.message || payload.text;
+                    window.appNotifications.unshift({ text: '📢 ' + msg, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+                    if (window.appNotifications.length > 4) window.appNotifications.pop();
+                    var list = document.getElementById('notifications-list');
+                    if (list) {
+                        list.innerHTML = '';
+                        window.appNotifications.forEach(function(n) {
+                            var item = document.createElement('div');
+                            item.style.cssText = 'padding:6px 8px; border-bottom:1px solid rgba(255,255,255,0.05);';
+                            item.innerHTML = '<span style="color:#6b7280; font-size:10px; margin-right:5px;">' + n.time + '</span> ' + n.text;
+                            list.appendChild(item);
+                        });
+                    }
+                    var badge = document.getElementById('bell-badge');
+                    if (badge) {
+                        var count = parseInt(badge.innerText) || 0;
+                        count++;
+                        badge.innerText = count;
+                        badge.classList.remove('hidden');
+                        var bellWrapper = document.getElementById('bell-wrapper');
+                        if (bellWrapper) bellWrapper.style.display = 'inline-block';
+                    }
                 }
             })
             .subscribe(function(status) {
@@ -2617,35 +2638,7 @@
         console.log("Точка Ж: Показываем страницу...");
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('singleDealPage').classList.add('hidden');
-        var currentHash = window.location.hash;
-        if (currentHash) {
-            var hashPageId = currentHash.replace('#', '');
-            // Срезаем префикс page- (добавлен для предотвращения автоскролла браузера)
-            if (hashPageId.indexOf('page-') === 0) {
-                hashPageId = hashPageId.substring(5);
-            }
-            if (hashPageId.indexOf('deal_') === 0) {
-                var dealId = parseInt(hashPageId.split('_')[1]);
-                if (deals.find(function(d) { return d.id == dealId; })) {
-                    showPage('dealsPage');
-                    showSingleDeal(dealId);
-                } else {
-                    showPage('homePage');
-                }
-            } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].indexOf(hashPageId) !== -1) {
-                if (hashPageId === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) {
-                    hashPageId = 'homePage';
-                }
-                if (hashPageId === 'settingsPage' && !currentUser) {
-                    hashPageId = 'homePage';
-                }
-                showPage(hashPageId);
-            } else {
-                showPage('homePage');
-            }
-        } else {
-            showPage('homePage');
-        }
+        navigateFromHash();
 
         setTimeout(function() {
             startLiveFeed();
@@ -2659,6 +2652,35 @@
 
         console.log('[Init] Инициализация завершена');
     }
+
+    function navigateFromHash() {
+        var hash = window.location.hash || '';
+        if (hash.indexOf('#') === 0) {
+            hash = hash.substring(1);
+        }
+        if (hash.indexOf('page-') === 0) {
+            hash = hash.substring(5);
+        }
+        if (hash.indexOf('deal_') === 0) {
+            var dealId = parseInt(hash.split('_')[1]);
+            if (deals.find(function(d) { return d.id == dealId; })) {
+                showPage('dealsPage');
+                showSingleDeal(dealId);
+            } else {
+                showPage('homePage');
+            }
+        } else if (['homePage', 'dealsPage', 'reviewsPage', 'supportPage', 'profilePage', 'settingsPage', 'adminPage', 'helpPage'].indexOf(hash) !== -1) {
+            if (hash === 'adminPage' && (!currentUser || currentUser.role !== 'admin')) { hash = 'homePage'; }
+            if (hash === 'settingsPage' && !currentUser) { hash = 'homePage'; }
+            showPage(hash);
+        } else {
+            showPage('homePage');
+        }
+    }
+
+    window.addEventListener('hashchange', function() {
+        navigateFromHash();
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         // Enter key для чата сделок (Shift+Enter — перенос строки)
