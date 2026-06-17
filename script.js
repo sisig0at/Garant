@@ -662,7 +662,24 @@
                 else if (found.role === 'moderator') authorRole = 'Модератор';
                 else if (found.role === 'seller') authorRole = 'Продавец';
             }
-            var avatarUrl = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff';
+
+            // Анонимизация
+            var whitelistAuthors = ['zeiten', 'Monter', 'milawka38', '777', 'Imprezza', 'HeDViN'];
+            var displayAuthor = authorName;
+            var displayRole = authorRole;
+            var displayAvatar = '';
+            if (whitelistAuthors.indexOf(r.user_login) === -1 && r.user_login.indexOf('User#') !== 0) {
+                var hash = 0;
+                for (var i = 0; i < r.user_login.length; i++) {
+                    hash = r.user_login.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                var finalId = Math.abs(hash % 900000) + 100000;
+                displayAuthor = 'User#' + finalId;
+                displayRole = Math.random() > 0.5 ? 'покупатель' : 'продавец';
+                displayAvatar = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + finalId + '&backgroundColor=6d28d9';
+            } else {
+                displayAvatar = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff';
+            }
             var card = document.createElement('div');
             card.className = 'review-card';
             card.innerHTML =
@@ -671,10 +688,10 @@
                     '<p class="review-text">"' + escapeHtml(r.text || '') + '"</p>' +
                 '</div>' +
                 '<div class="review-card-bottom">' +
-                    '<img class="review-avatar" src="' + avatarUrl + '" alt="" loading="lazy">' +
+                    '<img class="review-avatar" src="' + displayAvatar + '" alt="" loading="lazy">' +
                     '<div class="review-author-info">' +
-                        '<span class="review-author-name">' + escapeHtml(authorName) + '</span>' +
-                        '<span class="review-author-role">' + escapeHtml(authorRole) + '</span>' +
+                        '<span class="review-author-name">' + escapeHtml(displayAuthor) + '</span>' +
+                        '<span class="review-author-role">' + escapeHtml(displayRole) + '</span>' +
                     '</div>' +
                 '</div>';
             if (currentUser && (currentUser.role === 'admin' || currentUser.login === r.user_login)) {
