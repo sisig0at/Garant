@@ -1105,6 +1105,12 @@ html, body {
 * {
     max-width: 100%;
 }
+/* Dropdown меню должны игнорировать глобальный max-width */
+#notification-dropdown, #profile-dropdown,
+[style*="position: absolute"][id$="-dropdown"],
+[style*="position: absolute"][class*="dropdown"] {
+    max-width: none !important;
+}
 
 .ticket-item { background: #0a0418; border-radius: 20px; padding: 14px 18px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #a855f7; transition: 0.2s; }
 .ticket-item:hover { background: #1f143f; }

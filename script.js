@@ -458,10 +458,6 @@
             localStorage.removeItem('vg_user');
         }
         let isGuest = !currentUser;
-        let nameEl = document.getElementById('userNameDisplay');
-        if (nameEl) {
-            nameEl.innerHTML = currentUser ? getDisplayNameOrLogin(currentUser) + (currentUser.role === 'admin' ? ' <span class="admin-badge">ADMIN</span>' : '') : 'Гость';
-        }
         let balEl = document.getElementById('balanceDisplay');
         if (balEl) balEl.innerText = currentUser ? (currentUser.balance || 0).toLocaleString() : '0';
 

@@ -26,30 +26,29 @@
             <a data-page="admin" id="navAdmin" style="display:none;"><i class="fas fa-crown"></i> Админ</a>
             <a data-page="help"><i class="fas fa-question-circle"></i> Помощь</a>
         </div>
-        <div class="user-info">
-            <i class="fas fa-user-circle"></i> <span id="userNameDisplay">Гость</span>
-            <div id="notification-bell-container" style="position:relative; margin-right:20px; align-items:center; cursor:pointer; z-index:10000; display:none;">
+        <div class="user-info" style="display:flex; align-items:center; gap:16px;">
+            <div id="notification-bell-container" style="position:relative; cursor:pointer; display:flex; align-items:center; justify-content:center; width:35px; height:35px; z-index:10001; display:none;">
                 <span id="notification-bell" style="font-size:20px; user-select:none;">🔔</span>
-                <span id="bell-badge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:9999px; line-height:1;">0</span>
-                <div id="notification-dropdown" class="hidden" style="position:absolute; top:35px; right:0; width:280px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:10px; flex-direction:column; gap:8px;">
-                    <div style="font-size:12px; color:#9ca3af; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px; font-weight:bold;">Последние уведомления</div>
-                    <div id="notifications-list" style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; font-size:12px; color:#e2e8f0;">
-                        <div class="empty-notif-msg" style="color:#6b7280; text-align:center; padding:10px 0;">Уведомлений нет</div>
+                <span id="bell-badge" class="hidden" style="position:absolute; top:-2px; right:-2px; background:#ef4444; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:9999px; line-height:1;">0</span>
+                <div id="notification-dropdown" class="hidden" style="position:absolute; top:45px; right:0; width:300px; min-width:300px; background:#13111C; border:1px solid rgba(139,92,246,0.4); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); padding:12px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-size:13px; color:#a78bfa; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px; font-weight:bold;">Последние уведомления</div>
+                    <div id="notifications-list" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto; font-size:12px; color:#e2e8f0; text-align:left;">
+                        <div class="empty-notif-msg" style="color:#6b7280; text-align:center; padding:15px 0;">Уведомлений нет</div>
                     </div>
                 </div>
             </div>
-            <div id="profile-menu-container" style="position:relative; display:none; align-items:center; cursor:pointer; z-index:10000;">
-                <img id="header-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" style="width:32px; height:32px; border-radius:50%; border:1px solid #a78bfa; margin-right:8px; background:#1e1b2e;">
-                <span id="header-nickname" style="color:#e2e8f0; font-size:14px; margin-right:5px;">Пользователь</span>
+            <div id="profile-menu-container" style="position:relative; display:none; align-items:center; justify-content:center; cursor:pointer; z-index:10000;">
+                <img id="header-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=default" style="width:32px; height:32px; border-radius:50%; border:1px solid #a78bfa; margin-right:6px; background:#1e1b2e;">
+                <span id="header-nickname" style="color:#e2e8f0; font-size:14px; margin-right:4px; white-space:nowrap;">Пользователь</span>
                 <span style="font-size:10px; color:#a78bfa;">▼</span>
-                <div id="profile-dropdown" class="hidden" style="position:absolute; top:40px; right:0; width:180px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:8px; flex-direction:column; gap:4px;">
+                <div id="profile-dropdown" class="hidden" style="position:absolute; top:40px; right:0; width:180px; background:#13111C; border:1px solid rgba(139,92,246,0.3); border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding:8px; display:flex; flex-direction:column; gap:4px;">
                     <button id="drop-btn-profile" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">👤 Профиль</button>
                     <button id="drop-btn-settings" style="background:none; border:none; color:#e2e8f0; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='none'">⚙️ Настройки</button>
                     <div style="height:1px; background:rgba(255,255,255,0.1); margin:4px 0;"></div>
                     <button id="drop-btn-logout" style="background:none; border:none; color:#ef4444; text-align:left; padding:6px 10px; font-size:13px; cursor:pointer; border-radius:4px; width:100%; font-weight:bold;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">🚪 Выйти</button>
                 </div>
             </div>
-            <span class="balance-display"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
+            <span class="balance-display" style="white-space:nowrap;"><i class="fas fa-coins"></i> <span id="balanceDisplay">0</span> ₽</span>
             <button id="authBtn" class="premium-auth-btn"><i class="fas fa-sign-in-alt"></i> <span>Вход</span></button>
             <button id="themeToggle" class="theme-btn" title="Сменить тему"><i class="fas fa-moon"></i></button>
         </div>
