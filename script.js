@@ -659,6 +659,7 @@
         'escrow': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
         'escroy': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
         'dispute': { text: 'Арбитраж / Спор', color: '#f87171' },
+        'disputed': { text: 'Арбитраж / Спор', color: '#f87171' },
         'completed': { text: 'Завершена успешно', color: '#34d399' },
         'closed': { text: 'Закрыта', color: '#9ca3af' },
         'cancelled': { text: 'Отменена', color: '#9ca3af' }
@@ -1239,6 +1240,7 @@
             'escrow': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
             'escroy': { text: 'Заморожена (Гарант)', color: '#fbbf24' },
             'dispute': { text: 'Арбитраж / Спор', color: '#f87171' },
+            'disputed': { text: 'Арбитраж / Спор', color: '#f87171' },
             'completed': { text: 'Успешно завершена', color: '#34d399' },
             'closed': { text: 'Закрыта', color: '#9ca3af' },
             'cancelled': { text: 'Отменена', color: '#9ca3af' }
