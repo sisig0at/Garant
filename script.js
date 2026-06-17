@@ -227,12 +227,15 @@
         if (!r3.error && r3.data) reviews = r3.data;
         // Принудительный сид 6 именных отзывов авторитетных трейдеров, если их нет в БД
         var seedReviews = [
-            { user_login: 'zeiten', rating: 5, text: 'Отличный сервис, провёл сделку на 50к всё супер быстро!', date: '2026-06-01' },
+            { user_login: 'zeiten', rating: 4, text: 'Сделка прошла успешно, но продавец долго не выходил на связь. К гаранту претензий нет, холдирование работает четко. 4 звезды.', date: '2026-06-01' },
             { user_login: 'Monter', rating: 5, text: 'Лучший гарант в СНГ сегменте, комиссии минимальные.', date: '2026-06-01' },
             { user_login: 'milawka38', rating: 4, text: 'Сначала залагало пополнение через СБП, испугалась. Но поддержка ответила за 30 секунд и всё зачислила вручную! Сервис надёжный, но за лаг ставлю 4 звезды.', date: '2026-06-01' },
             { user_login: '777', rating: 5, text: 'Работаю тут на постоянной основе, холдирование работает честно.', date: '2026-06-01' },
             { user_login: 'Imprezza', rating: 4, text: 'Дизайн топ, сделки безопасные. Была задержка на выводе крупных средств, пришлось пообщаться с арбитром. В итоге всё вывели. 4 звезды за ожидание, к безопасности вопросов нет.', date: '2026-06-01' },
-            { user_login: 'HeDViN', rating: 3, text: 'Долго не мог пройти верификацию почты, выдавало ошибку. Оператор в тикетах помог решить проблему. Сами сделки проходят отлично, ставлю 3 звезды чисто из-за багов с регистрацией.', date: '2026-06-01' }
+            { user_login: 'HeDViN', rating: 3, text: 'Долго не мог пройти верификацию почты, выдавало ошибку. Оператор в тикетах помог решить проблему. Сами сделки проходят отлично, ставлю 3 звезды чисто из-за багов с регистрацией.', date: '2026-06-01' },
+            { user_login: 'User#834195', rating: 4, text: 'Ошибся в реквизитах при выводе, транзакция зависла. Пришлось писать в поддержку. Ответили минут через 10, деньги вернули на баланс. Ставлю 4 звезды за долгий ответ.', date: '2026-06-02' },
+            { user_login: 'User#294105', rating: 3, text: 'Интерфейс красивый, но на мобилке кнопка создания сделки сначала не нажималась. Перезагрузил страницу — заработало. 3 звезды за баги, но саппорт пообещал исправить.', date: '2026-06-02' },
+            { user_login: 'User#573921', rating: 4, text: 'Проводил обмен крипты. Курс немного скаканул пока сделка висела в эскроу. В итоге все завершили, но осадочек остался. 4 звезды.', date: '2026-06-02' }
         ];
         var existingLogins = reviews.map(function(r) { return r.user_login; });
         seedReviews.forEach(function(sr) {
@@ -2776,118 +2779,124 @@
 
     async function initApp() {
         console.log("Точка А: Приложение загружается, проверяем сессию...");
-        document.body.style.visibility = 'hidden';
 
         // Небольшая пауза, чтобы SDK гарантированно прочитал токены из памяти браузера
         console.log("Точка А.1: Ожидаем 200мс перед getSession...");
         await new Promise(function(resolve) { setTimeout(resolve, 200); });
 
-        // 1. Сначала жестко дожидаемся ответа о сессии
-        console.log("Точка Б: Вызываем sb.auth.getSession()...");
-        const { data: { session }, error } = await sb.auth.getSession();
-        if (error) console.error('[Session] Ошибка getSession:', error);
-        console.log("Точка Б.1: getSession() завершён, session =", session ? session.user.id : null);
-
-        // 2. Добавляем колонку is_fake, если её нет (для фильтрации фейковых сделок)
         try {
-            await sb.from('deals').select('is_fake').limit(1);
-        } catch(e) {
+            // 1. Сначала жестко дожидаемся ответа о сессии
+            console.log("Точка Б: Вызываем sb.auth.getSession()...");
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (error) console.error('[Session] Ошибка getSession:', error);
+            console.log("Точка Б.1: getSession() завершён, session =", session ? session.user.id : null);
+
+            // 2. Добавляем колонку is_fake, если её нет (для фильтрации фейковых сделок)
             try {
-                await sb.rpc('exec_sql', { query: 'ALTER TABLE public.deals ADD COLUMN IF NOT EXISTS is_fake BOOLEAN NOT NULL DEFAULT false;' });
-            } catch(e2) {
-                console.warn('[Init] Не удалось добавить колонку is_fake:', e2.message);
-            }
-        }
-        // 3. Загружаем все данные из БД
-        console.log("Точка В: Загружаем данные из БД...");
-        await loadAllData();
-        console.log("Точка В.1: Данные загружены, users =", users.length, "deals =", deals.length);
-
-        // 3. Восстанавливаем пользователя по сессии
-        console.log("Точка Г: Восстанавливаем пользователя...");
-        if (session && session.user && session.user.email) {
-            var sessionEmail = session.user.email;
-            console.log("Сессия успешно восстановлена для:", session.user.id, "email:", sessionEmail);
-            var u = users.find(function(x) { return x.email === sessionEmail; });
-            if (u && !u.banned) {
-                currentUser = u;
-                currentUser.id = session.user.id;
-                await verifyAdminRole();
-                console.log('[Session] Пользователь восстановлен:', currentUser.login, 'admin:', window.isAdmin);
-            } else {
-                console.log("Точка Г-ERROR: Пользователь не найден или забанен, включаем гостевой режим.");
-            }
-        } else {
-            console.log("Точка Г-INFO: Активной сессии не найдено, включаем гостевой режим.");
-        }
-
-        // Fallback: если Supabase не дал сессию, пробуем localStorage
-        if (!currentUser) {
-            var saved = localStorage.getItem('vg_user');
-            if (saved) {
+                await sb.from('deals').select('is_fake').limit(1);
+            } catch(e) {
                 try {
-                    var parsed = JSON.parse(saved);
-                    var u = findUserByLogin(parsed.login);
-                    if (u && !u.banned) {
-                        currentUser = u;
-                        await verifyAdminRole();
-                        console.log("Точка Г-FALLBACK: Пользователь восстановлен из localStorage:", currentUser.login, 'admin:', window.isAdmin);
-                    }
-                } catch(e) {}
+                    await sb.rpc('exec_sql', { query: 'ALTER TABLE public.deals ADD COLUMN IF NOT EXISTS is_fake BOOLEAN NOT NULL DEFAULT false;' });
+                } catch(e2) {
+                    console.warn('[Init] Не удалось добавить колонку is_fake:', e2.message);
+                }
             }
-        }
+            // 3. Загружаем все данные из БД
+            console.log("Точка В: Загружаем данные из БД...");
+            await loadAllData();
+            console.log("Точка В.1: Данные загружены, users =", users.length, "deals =", deals.length);
 
-        // Нормализация short_id: присваиваем 6-значные ID пользователям без short_id
-        for (var i = 0; i < users.length; i++) {
-            if (!users[i].short_id) {
-                var newId = String(Math.floor(100000 + Math.random() * 900000));
-                users[i].short_id = newId;
-                sb.from('users').update({ short_id: newId }).eq('id', users[i].id).then();
+            // 3. Восстанавливаем пользователя по сессии
+            console.log("Точка Г: Восстанавливаем пользователя...");
+            if (session && session.user && session.user.email) {
+                var sessionEmail = session.user.email;
+                console.log("Сессия успешно восстановлена для:", session.user.id, "email:", sessionEmail);
+                var u = users.find(function(x) { return x.email === sessionEmail; });
+                if (u && !u.banned) {
+                    currentUser = u;
+                    currentUser.id = session.user.id;
+                    await verifyAdminRole();
+                    console.log('[Session] Пользователь восстановлен:', currentUser.login, 'admin:', window.isAdmin);
+                } else {
+                    console.log("Точка Г-ERROR: Пользователь не найден или забанен, включаем гостевой режим.");
+                }
+            } else {
+                console.log("Точка Г-INFO: Активной сессии не найдено, включаем гостевой режим.");
             }
+
+            // Fallback: если Supabase не дал сессию, пробуем localStorage
+            if (!currentUser) {
+                var saved = localStorage.getItem('vg_user');
+                if (saved) {
+                    try {
+                        var parsed = JSON.parse(saved);
+                        var u = findUserByLogin(parsed.login);
+                        if (u && !u.banned) {
+                            currentUser = u;
+                            await verifyAdminRole();
+                            console.log("Точка Г-FALLBACK: Пользователь восстановлен из localStorage:", currentUser.login, 'admin:', window.isAdmin);
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            // Нормализация short_id: присваиваем 6-значные ID пользователям без short_id
+            for (var i = 0; i < users.length; i++) {
+                if (!users[i].short_id) {
+                    var newId = String(Math.floor(100000 + Math.random() * 900000));
+                    users[i].short_id = newId;
+                    sb.from('users').update({ short_id: newId }).eq('id', users[i].id).then();
+                }
+            }
+            // Сбрасываем старый localStorage с ID "1"
+            localStorage.removeItem('vg_user');
+
+            // 4. Отрисовываем UI
+            console.log("Точка Д: Отрисовываем UI...");
+            if (currentUser) {
+                await loadUserTickets();
+            }
+            updateUI();
+            updateGlobalStats();
+            renderReviews();
+            renderDeals();
+        } catch (err) {
+            console.error("Ошибка при загрузке данных:", err);
+        } finally {
+            // 5. Загружаем стартовые сделки из БД
+            console.log("Точка Е: Загружаем стартовые сделки...");
+            await loadInitialDeals();
+
+            // 6. Подключаем Realtime каналы
+            console.log('[Realtime] Настройка подписок...');
+            setupRealtimeSubscriptions();
+
+            // 7.5 Авто-удаление старых закрытых тикетов
+            await autoDeleteOldClosedTickets();
+
+            // 8. Показываем страницу (восстанавливаем из URL-хэша при F5)
+            console.log("Точка Ж: Показываем страницу...");
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('singleDealPage').classList.add('hidden');
+            navigateFromHash();
+
+            setTimeout(function() {
+                startLiveFeed();
+                initFaq();
+            }, 200);
+
+            var preloader = document.getElementById('preloader');
+            var appWrapper = document.getElementById('app-wrapper');
+            if (preloader && appWrapper) {
+                preloader.style.opacity = '0';
+                appWrapper.style.opacity = '1';
+                setTimeout(function() {
+                    preloader.remove();
+                }, 500);
+            }
+
+            console.log('[Init] Инициализация завершена');
         }
-        // Сбрасываем старый localStorage с ID "1"
-        localStorage.removeItem('vg_user');
-
-        // 4. Отрисовываем UI
-        console.log("Точка Д: Отрисовываем UI...");
-        if (currentUser) {
-            await loadUserTickets();
-        }
-        updateUI();
-        updateGlobalStats();
-        renderReviews();
-        renderDeals();
-
-        // 5. Загружаем стартовые сделки из БД
-        console.log("Точка Е: Загружаем стартовые сделки...");
-        await loadInitialDeals();
-
-        // 6. Подключаем Realtime каналы
-        console.log('[Realtime] Настройка подписок...');
-        setupRealtimeSubscriptions();
-
-        // 7.5 Авто-удаление старых закрытых тикетов
-        await autoDeleteOldClosedTickets();
-
-        // 8. Показываем страницу (восстанавливаем из URL-хэша при F5)
-        console.log("Точка Ж: Показываем страницу...");
-        document.getElementById('mainContent').classList.remove('hidden');
-        document.getElementById('singleDealPage').classList.add('hidden');
-        navigateFromHash();
-
-        setTimeout(function() {
-            startLiveFeed();
-            initFaq();
-        }, 200);
-
-        setTimeout(function() {
-            document.body.style.visibility = 'visible';
-            document.body.classList.add('loaded');
-            var hero = document.querySelector('.hero-animation');
-            if (hero) hero.classList.add('fade-done');
-        }, 1600);
-
-        console.log('[Init] Инициализация завершена');
     }
 
     function navigateFromHash() {

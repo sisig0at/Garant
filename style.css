@@ -23,7 +23,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    animation: fadeOutUp 1.5s forwards;
+    animation: fadeOutUp 1.2s forwards;
     pointer-events: none;
 }
 @keyframes fadeOutUp {
@@ -48,7 +48,6 @@ body {
 }
 .hero-logo i { font-size: 60px; color: white; }
 .hero-text { margin-top: 30px; font-size: 28px; letter-spacing: 4px; background: linear-gradient(135deg, #e9d5ff, #c084fc); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: bold; }
-.hero-animation.fade-done { display: none !important; }
 
 /* НАВБАР */
 .navbar {
