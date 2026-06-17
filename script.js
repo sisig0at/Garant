@@ -644,14 +644,49 @@
     async function renderReviews() {
         let container = document.getElementById('reviewsList');
         if (!container) return;
-        container.innerHTML = reviews.slice().reverse().map(function(r) {
-            var html = '<div class="review-item"><i class="fas fa-star"></i> ' + r.rating + '/5 | <strong>' + escapeHtml(r.user_login) + '</strong> (' + r.date + ')<br>' + escapeHtml(r.text || '');
-            if (currentUser && (currentUser.role === 'admin' || currentUser.login === r.user_login)) {
-                html += '<button class="delRev" data-id="' + r.id + '" style="margin-left:15px;">Удалить</button>';
+        container.innerHTML = '';
+        var items = reviews.slice().reverse();
+        if (items.length === 0) {
+            container.innerHTML = '<p style="color:#888;text-align:center;">Отзывов пока нет.</p>';
+            return;
+        }
+        items.forEach(function(r) {
+            var stars = '';
+            for (var s = 0; s < (r.rating || 5); s++) stars += '⭐';
+            var authorName = r.user_login;
+            var authorRole = 'Пользователь';
+            var found = users.find(function(u) { return u.login === r.user_login; });
+            if (found) {
+                if (found.nickname) authorName = found.nickname;
+                if (found.role === 'admin') authorRole = 'Администратор';
+                else if (found.role === 'moderator') authorRole = 'Модератор';
+                else if (found.role === 'seller') authorRole = 'Продавец';
             }
-            html += '</div>';
-            return html;
-        }).join('');
+            var avatarUrl = 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(r.user_login) + '&backgroundColor=6d28d9&textColor=ffffff';
+            var card = document.createElement('div');
+            card.className = 'review-card';
+            card.innerHTML =
+                '<div class="review-card-top">' +
+                    '<div class="review-stars">' + stars + '</div>' +
+                    '<p class="review-text">"' + escapeHtml(r.text || '') + '"</p>' +
+                '</div>' +
+                '<div class="review-card-bottom">' +
+                    '<img class="review-avatar" src="' + avatarUrl + '" alt="" loading="lazy">' +
+                    '<div class="review-author-info">' +
+                        '<span class="review-author-name">' + escapeHtml(authorName) + '</span>' +
+                        '<span class="review-author-role">' + escapeHtml(authorRole) + '</span>' +
+                    '</div>' +
+                '</div>';
+            if (currentUser && (currentUser.role === 'admin' || currentUser.login === r.user_login)) {
+                var delBtn = document.createElement('button');
+                delBtn.className = 'delRev';
+                delBtn.dataset.id = r.id;
+                delBtn.textContent = 'Удалить';
+                delBtn.style.cssText = 'margin-top:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#f87171;padding:6px 12px;font-size:12px;cursor:pointer;';
+                card.appendChild(delBtn);
+            }
+            container.appendChild(card);
+        });
     }
 
     // ===== SUPPORT TICKETS RENDER =====
