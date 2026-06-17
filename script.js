@@ -1188,6 +1188,12 @@
     // ===== PAGE NAVIGATION =====
 
     function showPage(pageId) {
+        // При любом переходе сначала скрываем чат сделки и показываем основную обёртку
+        var singleDealPage = document.getElementById('singleDealPage');
+        if (singleDealPage) singleDealPage.classList.add('hidden');
+        var mainContent = document.getElementById('mainContent');
+        if (mainContent) mainContent.classList.remove('hidden');
+        currentDealId = null;
         // ===== УЛЬТИМАТИВНАЯ ЗАЩИТА АДМИНКИ =====
         if (pageId === 'adminPage') {
             if (!currentUser || currentUser.role !== 'admin') {
