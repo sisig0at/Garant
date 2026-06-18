@@ -688,13 +688,16 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
+    margin-bottom: 10px;
+}
+.bank-btn:last-child, .crypto-btn:last-child, .withdraw-method-btn:last-child {
+    margin-bottom: 0;
 }
 .bank-btn:hover, .crypto-btn:hover, .withdraw-method-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(168,85,247,0.4);
 }
 .crypto-btn { background: #2a1a5a; border: 1px solid #a855f7; }
-
 
 .methods-section-label {
     font-size: 11px;
@@ -707,6 +710,29 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 }
 .light-theme .methods-section-label {
     color: #9ca3af;
+}
+
+.crypto-dropdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin: 0;
+    padding: 0;
+}
+.crypto-dropdown .crypto-btn {
+    margin-bottom: 0;
+}
+.crypto-dropdown.active {
+    max-height: 150px;
+    opacity: 1;
+    margin-top: 10px;
+}
+.light-theme .crypto-dropdown.active {
+    margin-top: 10px;
 }
 
 .recharge-content {
@@ -865,34 +891,8 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     border-color: rgba(147,51,234,0.15);
     border-top-color: #7e22ce;
 }
-#recharge-crypto-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease, opacity 0.3s ease;
-    margin: 0;
-    padding: 0;
-}
-#recharge-crypto-options.recharge-crypto-visible {
-    max-height: 260px;
-    opacity: 1;
-    margin-bottom: 20px;
-}
-.chat-messages {
-    height: 280px;
-    overflow-y: auto;
-    background: #0a0418;
-    border-radius: 28px;
-    padding: 18px;
-    margin-bottom: 15px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    scrollbar-width: thin;
-    scrollbar-color: #a855f7 #1a0a3a;
-}
+
+/* cleaned: .chat-messages */
 .chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -1190,6 +1190,19 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
 
 /* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
 
+.withdraw-content {
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.withdraw-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 20px 0;
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 0 12px;
@@ -1253,17 +1266,7 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
         border-radius: 28px;
         max-width: 95%;
     }
-.withdraw-content {
-    min-height: 320px;
-    display: flex;
-    flex-direction: column;
-}
-.withdraw-methods {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin: 20px 0;
-}
+
 .withdraw-input-amount {
     margin-bottom: 14px;
 }
@@ -1398,26 +1401,8 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
     border-color: rgba(147,51,234,0.15);
     border-top-color: #7e22ce;
 }
-#withdraw-crypto-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease, opacity 0.3s ease;
-    margin: 0;
-    padding: 0;
-}
-#withdraw-crypto-options.withdraw-crypto-visible {
-    max-height: 260px;
-    opacity: 1;
-    margin-bottom: 20px;
-}
-.chat-messages {
-        height: 200px;
-        padding: 12px;
-    }
+
+        /* cleaned: .chat-messages */
     .message {
         max-width: 92%;
         font-size: 13px;

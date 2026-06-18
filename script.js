@@ -2342,8 +2342,8 @@
             return;
         }
         if (target.closest('#cryptoRechargeBtn') && target.closest('#recharge-step-methods')) {
-            var opt = document.getElementById('recharge-crypto-options');
-            opt.classList.toggle('recharge-crypto-visible');
+            var opt = document.getElementById('recharge-crypto-dropdown');
+            if (opt) opt.classList.toggle('active');
             return;
         }
         var cryptoBtn = target.closest('.crypto-btn');
@@ -2389,8 +2389,8 @@
             return;
         }
         if (target.closest('#cryptoWithdrawBtn') && target.closest('#withdraw-step-methods')) {
-            var opt = document.getElementById('withdraw-crypto-options');
-            opt.classList.toggle('withdraw-crypto-visible');
+            var opt = document.getElementById('withdraw-crypto-dropdown');
+            if (opt) opt.classList.toggle('active');
             return;
         }
         var wcryptoBtn = target.closest('.crypto-btn');
@@ -2826,8 +2826,8 @@
     }
 
     function resetRechargeModal() {
-        var cryptoOpts = document.getElementById('recharge-crypto-options');
-        if (cryptoOpts) cryptoOpts.classList.remove('recharge-crypto-visible');
+        var cryptoOpts = document.getElementById('recharge-crypto-dropdown');
+        if (cryptoOpts) cryptoOpts.classList.remove('active');
         document.getElementById('recharge-amount').value = '';
         document.getElementById('card-number').value = '';
         document.getElementById('card-expiry').value = '';
@@ -3020,8 +3020,8 @@
     }
 
     function resetWithdrawModal() {
-        var cryptoOpts = document.getElementById('withdraw-crypto-options');
-        if (cryptoOpts) cryptoOpts.classList.remove('withdraw-crypto-visible');
+        var cryptoOpts = document.getElementById('withdraw-crypto-dropdown');
+        if (cryptoOpts) cryptoOpts.classList.remove('active');
         document.getElementById('withdraw-amount').value = '';
         document.getElementById('withdraw-fio').value = '';
         document.getElementById('withdraw-details').value = '';
