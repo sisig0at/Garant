@@ -727,12 +727,14 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     margin-bottom: 0;
 }
 .crypto-dropdown.active {
-    max-height: 150px;
+    max-height: 160px;
     opacity: 1;
     margin-top: 10px;
+    padding: 6px 4px;
 }
 .light-theme .crypto-dropdown.active {
     margin-top: 10px;
+    padding: 6px 4px;
 }
 
 .recharge-content {
