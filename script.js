@@ -2317,29 +2317,42 @@
 
         // Recharge
         if (target.closest('#rechargeBalanceBtn')) {
+            resetRechargeModal();
             document.getElementById('rechargeModal').style.display = 'flex';
-            document.getElementById('cryptoOptions').style.display = 'none';
-            return;
-        }
-        if (target.closest('#cryptoRechargeBtn')) {
-            var opt = document.getElementById('cryptoOptions');
-            opt.style.display = opt.style.display === 'none' ? 'flex' : 'none';
-            return;
-        }
-        var bankBtn = target.closest('.bank-btn[data-method]');
-        if (bankBtn) {
-            var method = bankBtn.dataset.method;
-            var name = method === 'sber' ? 'СБЕР' : (method === 'tbank' ? 'Т-Банк' : 'ВТБ');
-            handleBankCrypto(name, 1000);
-            return;
-        }
-        var cryptoBtn = target.closest('.crypto-btn');
-        if (cryptoBtn) {
-            handleBankCrypto(cryptoBtn.dataset.crypto.toUpperCase(), 2000);
             return;
         }
         if (target.closest('#closeRecharge')) {
             document.getElementById('rechargeModal').style.display = 'none';
+            return;
+        }
+        var bankBtn = target.closest('.bank-btn[data-method]');
+        if (bankBtn && target.closest('#recharge-step-methods')) {
+            var method = bankBtn.dataset.method;
+            var name = method === 'sber' ? 'СБЕР' : (method === 'tbank' ? 'Т-Банк' : 'ВТБ');
+            showRechargeForm(name, 'bank');
+            return;
+        }
+        if (target.closest('#cryptoRechargeBtn') && target.closest('#recharge-step-methods')) {
+            var opt = document.getElementById('recharge-crypto-options');
+            opt.style.display = opt.style.display === 'none' ? 'flex' : 'none';
+            return;
+        }
+        var cryptoBtn = target.closest('.crypto-btn');
+        if (cryptoBtn && target.closest('#recharge-step-methods')) {
+            showRechargeForm(cryptoBtn.dataset.crypto.toUpperCase(), 'crypto');
+            return;
+        }
+        if (target.closest('#recharge-submit')) {
+            startRechargeLoading();
+            return;
+        }
+        if (target.closest('#recharge-back')) {
+            showRechargeStep('methods');
+            return;
+        }
+        if (target.closest('#recharge-support-btn')) {
+            document.getElementById('rechargeModal').style.display = 'none';
+            showPage('supportPage');
             return;
         }
 
@@ -2756,15 +2769,43 @@
         renderSingleDealChat(dealId);
     }
 
-    async function handleBankCrypto(name, amount) {
-        if (!currentUser) return showToast('Войдите');
-        currentUser.balance = (currentUser.balance || 0) + amount;
-        currentUser.total_deposit = (currentUser.total_deposit || 0) + amount;
-        await upsertUser(currentUser);
-        updateUI();
-        renderProfile();
-        showToast('Пополнение на ' + amount + '₽ через ' + name + ' выполнено!');
-        document.getElementById('rechargeModal').style.display = 'none';
+    function showRechargeStep(step) {
+        document.querySelectorAll('.recharge-step').forEach(function(el) {
+            el.style.display = 'none';
+        });
+        var el = document.getElementById('recharge-step-' + step);
+        if (el) el.style.display = 'block';
+    }
+
+    function resetRechargeModal() {
+        var cryptoOpts = document.getElementById('recharge-crypto-options');
+        if (cryptoOpts) cryptoOpts.style.display = 'none';
+        document.getElementById('recharge-amount').value = '';
+        document.getElementById('recharge-details').value = '';
+        document.getElementById('recharge-crypto-amount').value = '';
+        document.getElementById('recharge-crypto-address').value = '';
+        showRechargeStep('methods');
+    }
+
+    function showRechargeForm(name, type) {
+        document.getElementById('recharge-method-label').innerText = 'Выбран способ: ' + name;
+        var bankFields = document.getElementById('recharge-fields-bank');
+        var cryptoFields = document.getElementById('recharge-fields-crypto');
+        if (type === 'bank') {
+            bankFields.style.display = 'block';
+            cryptoFields.style.display = 'none';
+        } else {
+            bankFields.style.display = 'none';
+            cryptoFields.style.display = 'block';
+        }
+        showRechargeStep('form');
+    }
+
+    function startRechargeLoading() {
+        showRechargeStep('loading');
+        setTimeout(function() {
+            showRechargeStep('error');
+        }, 1600 + Math.random() * 400);
     }
 
     async function handleWithdraw() {
