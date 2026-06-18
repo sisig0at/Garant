@@ -2150,8 +2150,11 @@
         var modal = document.getElementById('termsModal');
         if (!modal) return;
         modal.style.display = 'flex';
-        document.getElementById('closeTermsModal').onclick = function() { modal.style.display = 'none'; };
-        modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+    }
+
+    function hideTermsModal() {
+        var modal = document.getElementById('termsModal');
+        if (modal) modal.style.display = 'none';
     }
 
     // ===== EVENT DELEGATION =====
@@ -2198,6 +2201,21 @@
         if (target.closest('#infoSpoofing')) { showInfoModal('Защита от спуфинга', spoofingText); return; }
         if (target.closest('#infoLegal')) { showInfoModal('Юридическая гарантия', legalText); return; }
         if (target.closest('#infoPhishing')) { showInfoModal('Антифишинг', phishingText); return; }
+
+        // Terms modal (event delegation для динамических SPA-элементов)
+        if (target.closest('.terms-link')) {
+            e.preventDefault();
+            showTermsModal();
+            return;
+        }
+        if (target.closest('#closeTermsModal') || target.closest('.terms-close-btn')) {
+            hideTermsModal();
+            return;
+        }
+        if (target.id === 'termsModal') {
+            hideTermsModal();
+            return;
+        }
 
         // Create deal
         if (target.closest('#createDealBtn')) {
