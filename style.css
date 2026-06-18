@@ -695,6 +695,20 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 }
 .crypto-btn { background: #2a1a5a; border: 1px solid #a855f7; }
 
+
+.methods-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    padding: 4px 0 2px;
+    margin-bottom: 2px;
+}
+.light-theme .methods-section-label {
+    color: #9ca3af;
+}
+
 .recharge-content {
     min-height: 320px;
     display: flex;

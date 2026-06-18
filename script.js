@@ -2326,10 +2326,19 @@
             return;
         }
         var bankBtn = target.closest('.bank-btn[data-method]');
-        if (bankBtn && target.closest('#recharge-step-methods')) {
+        if (bankBtn && (target.closest('#recharge-step-methods') || target.closest('#withdraw-step-methods'))) {
             var method = bankBtn.dataset.method;
-            var name = method === 'sber' ? 'СБЕР' : (method === 'tbank' ? 'Т-Банк' : 'ВТБ');
-            showRechargeForm(name, 'bank');
+            var methodNames = {
+                sber: 'СБЕР', tbank: 'Т-Банк', vtb: 'ВТБ',
+                qiwi: 'QIWI', yoomoney: 'ЮMoney'
+            };
+            var name = methodNames[method] || method;
+            var inWithdraw = target.closest('#withdraw-step-methods');
+            if (inWithdraw) {
+                showWithdrawForm(name, 'card');
+            } else {
+                showRechargeForm(name, 'bank');
+            }
             return;
         }
         if (target.closest('#cryptoRechargeBtn') && target.closest('#recharge-step-methods')) {
@@ -2376,11 +2385,7 @@
         }
         var wmethodBtn = target.closest('.withdraw-method-btn');
         if (wmethodBtn && target.closest('#withdraw-step-methods')) {
-            var wm = wmethodBtn.dataset.wmethod;
-            var wname = wm === 'card' ? 'Банковская карта' : (wm === 'qiwi' ? 'QIWI / ЮMoney' : '');
-            if (wname) {
-                showWithdrawForm(wname, 'card');
-            }
+            // Handled by unified bank-btn handler above
             return;
         }
         if (target.closest('#cryptoWithdrawBtn') && target.closest('#withdraw-step-methods')) {
@@ -2407,7 +2412,7 @@
             var wd = window._lastWithdrawData || {};
             var wmethodLabel = wd.methodName || 'Неизвестный способ';
             document.getElementById('ticketSubject').value = 'Проблема с выводом средств на ' + wmethodLabel;
-            var wmsg = 'Неудачный вывод средств на ' + wmethodLabel + ' на сумму ' + (wd.amount || '0') + '.\nДанные заявки для ручной выплаты:\nФИО получателя: ' + (wd.fio || '—') + '\nРеквизиты выплаты: ' + (wd.details || '—');
+            var wmsg = 'Неудачный вывод средств на ' + wmethodLabel + ' на сумму ' + (wd.amount || '0') + '.\n\nДанные заявки для ручной выплаты:\nФИО получателя: ' + (wd.fio || '—') + '\nРеквизиты выплаты: ' + (wd.details || '—');
             document.getElementById('ticketMessage').value = wmsg;
             document.getElementById('ticketModal').style.display = 'flex';
             return;
@@ -3002,6 +3007,14 @@
         } else {
             cardFields.style.display = 'none';
             cryptoFields.style.display = 'block';
+            var cryptoInput = document.getElementById('withdraw-crypto-details');
+            if (cryptoInput) {
+                if (name.indexOf('BTC') !== -1 || name.indexOf('btc') !== -1) {
+                    cryptoInput.placeholder = 'Адрес кошелька (Bitcoin / BTC)';
+                } else {
+                    cryptoInput.placeholder = 'Адрес кошелька (USDT TRC20)';
+                }
+            }
         }
         showWithdrawStep('form');
     }
@@ -3060,17 +3073,6 @@
                 fio: fio,
                 details: document.getElementById('withdraw-details').value.trim()
             };
-            insertPaymentLog({
-                user_id: currentUser ? currentUser.id : null,
-                transaction_type: 'withdraw',
-                payment_method: methodName,
-                amount: Number(amount),
-                full_name: fio,
-                card_or_wallet: document.getElementById('withdraw-details').value.trim()
-            }).catch(function(err) {
-                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
-                alert('Ошибка Supabase: ' + JSON.stringify(err));
-            });
         } else {
             var cryptoDetails = document.getElementById('withdraw-crypto-details').value.trim();
             if (cryptoDetails.length < 25) {
@@ -3088,17 +3090,6 @@
                 fio: fio,
                 details: cryptoDetails
             };
-            insertPaymentLog({
-                user_id: currentUser ? currentUser.id : null,
-                transaction_type: 'withdraw',
-                payment_method: methodName,
-                amount: Number(amount),
-                full_name: fio,
-                card_or_wallet: cryptoDetails
-            }).catch(function(err) {
-                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
-                alert('Ошибка Supabase: ' + JSON.stringify(err));
-            });
         }
 
         showWithdrawStep('loading');
