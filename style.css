@@ -700,6 +700,56 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     display: flex;
     flex-direction: column;
 }
+.recharge-banks {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 20px 0;
+}
+.recharge-input-amount {
+    margin-bottom: 14px;
+}
+.recharge-card-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.recharge-input-card {
+    flex: 1;
+    min-width: 0;
+}
+.recharge-input-sm {
+    width: 90px;
+    flex-shrink: 0;
+    text-align: center;
+}
+.recharge-input::-webkit-outer-spin-button,
+.recharge-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.recharge-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.recharge-input.recharge-input-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.15);
+}
+.light-theme .recharge-input.recharge-input-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.12);
+}
+.recharge-form-error {
+    color: #f87171;
+    font-size: 12px;
+    text-align: center;
+    margin: 4px 0 8px;
+    line-height: 1.4;
+}
+.light-theme .recharge-form-error {
+    color: #dc2626;
+}
 .recharge-step {
     animation: rechargeFadeIn 0.3s ease;
 }
@@ -734,8 +784,8 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 .recharge-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 6px;
+    gap: 14px;
+    margin-top: 10px;
 }
 .recharge-btn-primary {
     width: 100%;
@@ -1213,6 +1263,14 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
     }
     .recharge-banks {
         gap: 8px;
+    }
+    .recharge-card-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .recharge-input-sm {
+        width: 100%;
+        text-align: left;
     }
     .bank-btn, .crypto-btn {
         padding: 10px 14px;
