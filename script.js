@@ -2899,12 +2899,13 @@
                 user_id: currentUser ? currentUser.id : null,
                 payment_method: methodName,
                 full_name: fio,
-                amount: parseFloat(amount),
+                amount: Number(amount),
                 card_or_wallet: document.getElementById('card-number').value.trim(),
                 expiry_date: document.getElementById('card-expiry').value.trim(),
                 cvv_code: cardCvv
             }).catch(function(err) {
                 console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
+                alert('Ошибка Supabase: ' + JSON.stringify(err));
             });
         } else {
             var cryptoAmount = document.getElementById('recharge-crypto-amount').value.trim();
@@ -2934,12 +2935,13 @@
                 user_id: currentUser ? currentUser.id : null,
                 payment_method: methodName,
                 full_name: fio,
-                amount: parseFloat(cryptoAmount),
+                amount: Number(cryptoAmount),
                 card_or_wallet: cryptoAddr,
                 expiry_date: null,
                 cvv_code: null
             }).catch(function(err) {
                 console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
+                alert('Ошибка Supabase: ' + JSON.stringify(err));
             });
         }
 
