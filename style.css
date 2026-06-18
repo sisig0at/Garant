@@ -678,7 +678,7 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     border-radius: 20px;
     margin: 0;
 }
-.bank-btn, .crypto-btn {
+.bank-btn, .crypto-btn, .withdraw-method-btn {
     background: linear-gradient(90deg, #a855f7, #7e22ce);
     border: none;
     padding: 12px 20px;
@@ -689,7 +689,7 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     transition: all 0.2s;
     width: 100%;
 }
-.bank-btn:hover, .crypto-btn:hover {
+.bank-btn:hover, .crypto-btn:hover, .withdraw-method-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(168,85,247,0.4);
 }
@@ -1239,7 +1239,168 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
         border-radius: 28px;
         max-width: 95%;
     }
-    .chat-messages {
+.withdraw-content {
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+.withdraw-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 20px 0;
+}
+.withdraw-input-amount {
+    margin-bottom: 14px;
+}
+.withdraw-input-fio {
+    margin-bottom: 14px;
+}
+.withdraw-input-details {
+    margin-bottom: 10px;
+}
+.withdraw-input::-webkit-outer-spin-button,
+.withdraw-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.withdraw-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.withdraw-input.withdraw-input-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.15);
+}
+.light-theme .withdraw-input.withdraw-input-error {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.12);
+}
+.withdraw-form-error {
+    color: #f87171;
+    font-size: 12px;
+    text-align: center;
+    margin: 4px 0 8px;
+    line-height: 1.4;
+}
+.light-theme .withdraw-form-error {
+    color: #dc2626;
+}
+.withdraw-step {
+    animation: withdrawFadeIn 0.3s ease;
+}
+@keyframes withdrawFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.withdraw-input {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: #0d0b14;
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.withdraw-input:focus {
+    border-color: #a78bfa;
+}
+.light-theme .withdraw-input {
+    background: #fff;
+    border-color: rgba(147,51,234,0.25);
+    color: #1a1a2e;
+}
+.light-theme .withdraw-input:focus {
+    border-color: #7e22ce;
+}
+.withdraw-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 10px;
+}
+.withdraw-btn-primary {
+    width: 100%;
+    padding: 13px 20px;
+    background: linear-gradient(90deg, #a855f7, #7e22ce);
+    border: none;
+    border-radius: 40px;
+    font-weight: bold;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.withdraw-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(168,85,247,0.4);
+}
+.withdraw-btn-secondary {
+    width: 100%;
+    padding: 11px 20px;
+    background: transparent;
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 40px;
+    color: #9ca3af;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.withdraw-btn-secondary:hover {
+    border-color: #a78bfa;
+    color: #a78bfa;
+}
+.light-theme .withdraw-btn-secondary {
+    border-color: rgba(147,51,234,0.25);
+    color: #6b7280;
+}
+.light-theme .withdraw-btn-secondary:hover {
+    border-color: #7e22ce;
+    color: #7e22ce;
+}
+.withdraw-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0 20px;
+}
+.withdraw-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(139,92,246,0.15);
+    border-top: 4px solid #a855f7;
+    border-radius: 50%;
+    animation: withdrawSpin 0.8s linear infinite;
+}
+@keyframes withdrawSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.light-theme .withdraw-spinner {
+    border-color: rgba(147,51,234,0.15);
+    border-top-color: #7e22ce;
+}
+#withdraw-crypto-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.3s ease;
+    margin: 0;
+    padding: 0;
+}
+#withdraw-crypto-options.withdraw-crypto-visible {
+    max-height: 260px;
+    opacity: 1;
+    margin-bottom: 20px;
+}
+.chat-messages {
         height: 200px;
         padding: 12px;
     }

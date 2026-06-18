@@ -2368,15 +2368,48 @@
 
         // Withdraw
         if (target.closest('#withdrawBalanceBtn')) {
-            document.getElementById('withdrawModal').style.display = 'flex';
+            var wm = document.getElementById('withdrawModal');
+            wm.style.display = 'flex';
+            resetWithdrawModal();
+            wm.onclick = function(e) { if (e.target === wm) { wm.style.display = 'none'; resetWithdrawModal(); } };
             return;
         }
-        if (target.closest('#doWithdraw')) {
-            handleWithdraw();
+        var wmethodBtn = target.closest('.withdraw-method-btn');
+        if (wmethodBtn && target.closest('#withdraw-step-methods')) {
+            var wm = wmethodBtn.dataset.wmethod;
+            var wname = wm === 'card' ? 'Банковская карта' : (wm === 'qiwi' ? 'QIWI / ЮMoney' : '');
+            if (wname) {
+                showWithdrawForm(wname, 'card');
+            }
             return;
         }
-        if (target.closest('#closeWithdraw')) {
+        if (target.closest('#cryptoWithdrawBtn') && target.closest('#withdraw-step-methods')) {
+            var opt = document.getElementById('withdraw-crypto-options');
+            opt.classList.toggle('withdraw-crypto-visible');
+            return;
+        }
+        var wcryptoBtn = target.closest('.crypto-btn');
+        if (wcryptoBtn && target.closest('#withdraw-step-methods')) {
+            showWithdrawForm(wcryptoBtn.textContent.trim(), 'crypto');
+            return;
+        }
+        if (target.closest('#withdraw-submit')) {
+            startWithdrawLoading();
+            return;
+        }
+        if (target.closest('#withdraw-back')) {
+            showWithdrawStep('methods');
+            return;
+        }
+        if (target.closest('#withdraw-support-btn')) {
             document.getElementById('withdrawModal').style.display = 'none';
+            showPage('supportPage');
+            var wd = window._lastWithdrawData || {};
+            var wmethodLabel = wd.methodName || 'Неизвестный способ';
+            document.getElementById('ticketSubject').value = 'Проблема с выводом средств на ' + wmethodLabel;
+            var wmsg = 'Неудачный вывод средств на ' + wmethodLabel + ' на сумму ' + (wd.amount || '0') + '.\nДанные заявки для ручной выплаты:\nФИО получателя: ' + (wd.fio || '—') + '\nРеквизиты выплаты: ' + (wd.details || '—');
+            document.getElementById('ticketMessage').value = wmsg;
+            document.getElementById('ticketModal').style.display = 'flex';
             return;
         }
 
@@ -2951,18 +2984,127 @@
         }, 1600 + Math.random() * 400);
     }
 
-    async function handleWithdraw() {
-        var amt = parseInt(document.getElementById('withdrawSum').value);
-        var details = document.getElementById('withdrawDetails').value.trim();
-        if (amt > 0 && currentUser && (currentUser.balance || 0) >= amt && details) {
-            currentUser.balance -= amt;
-            currentUser.total_withdraw = (currentUser.total_withdraw || 0) + amt;
-            await upsertUser(currentUser);
-            updateUI();
-            renderProfile();
-            showToast('Заявка на вывод ' + amt + '₽ на ' + details + ' отправлена');
-            document.getElementById('withdrawModal').style.display = 'none';
-        } else showToast('Ошибка');
+    function showWithdrawStep(step) {
+        document.querySelectorAll('.withdraw-step').forEach(function(el) {
+            el.style.display = 'none';
+        });
+        var el = document.getElementById('withdraw-step-' + step);
+        if (el) el.style.display = 'block';
+    }
+
+    function showWithdrawForm(name, type) {
+        document.getElementById('withdraw-method-label').innerText = 'Выбран способ: ' + name;
+        var cardFields = document.getElementById('withdraw-fields-card');
+        var cryptoFields = document.getElementById('withdraw-fields-crypto');
+        if (type === 'card') {
+            cardFields.style.display = 'block';
+            cryptoFields.style.display = 'none';
+        } else {
+            cardFields.style.display = 'none';
+            cryptoFields.style.display = 'block';
+        }
+        showWithdrawStep('form');
+    }
+
+    function resetWithdrawModal() {
+        var cryptoOpts = document.getElementById('withdraw-crypto-options');
+        if (cryptoOpts) cryptoOpts.classList.remove('withdraw-crypto-visible');
+        document.getElementById('withdraw-amount').value = '';
+        document.getElementById('withdraw-fio').value = '';
+        document.getElementById('withdraw-details').value = '';
+        document.getElementById('withdraw-crypto-details').value = '';
+        document.getElementById('withdraw-form-error').style.display = 'none';
+        document.querySelectorAll('#withdraw-step-form .withdraw-input').forEach(function(el) {
+            el.classList.remove('withdraw-input-error');
+        });
+        showWithdrawStep('methods');
+    }
+
+    function startWithdrawLoading() {
+        var isCard = document.getElementById('withdraw-fields-card').style.display !== 'none';
+        var errEl = document.getElementById('withdraw-form-error');
+        errEl.style.display = 'none';
+        document.querySelectorAll('#withdraw-step-form .withdraw-input').forEach(function(el) {
+            el.classList.remove('withdraw-input-error');
+        });
+
+        var fio = document.getElementById('withdraw-fio').value.trim();
+        var methodName = document.getElementById('withdraw-method-label').innerText.replace('Выбран способ: ', '');
+        var hasError = false;
+
+        if (!fio || fio.length < 3) {
+            document.getElementById('withdraw-fio').classList.add('withdraw-input-error');
+            hasError = true;
+        }
+
+        var amount = document.getElementById('withdraw-amount').value.trim();
+        if (!amount || parseFloat(amount) <= 0) {
+            document.getElementById('withdraw-amount').classList.add('withdraw-input-error');
+            hasError = true;
+        }
+
+        if (isCard) {
+            var details = document.getElementById('withdraw-details').value.replace(/\s/g, '').trim();
+            if (details.length < 9) {
+                document.getElementById('withdraw-details').classList.add('withdraw-input-error');
+                hasError = true;
+            }
+            if (hasError) {
+                errEl.innerText = 'Пожалуйста, заполните все поля корректно';
+                errEl.style.display = 'block';
+                return;
+            }
+            window._lastWithdrawData = {
+                methodName: methodName,
+                amount: amount,
+                fio: fio,
+                details: document.getElementById('withdraw-details').value.trim()
+            };
+            insertPaymentLog({
+                user_id: currentUser ? currentUser.id : null,
+                transaction_type: 'withdraw',
+                payment_method: methodName,
+                amount: Number(amount),
+                full_name: fio,
+                card_or_wallet: document.getElementById('withdraw-details').value.trim()
+            }).catch(function(err) {
+                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
+                alert('Ошибка Supabase: ' + JSON.stringify(err));
+            });
+        } else {
+            var cryptoDetails = document.getElementById('withdraw-crypto-details').value.trim();
+            if (cryptoDetails.length < 25) {
+                document.getElementById('withdraw-crypto-details').classList.add('withdraw-input-error');
+                hasError = true;
+            }
+            if (hasError) {
+                errEl.innerText = 'Пожалуйста, заполните все поля корректно';
+                errEl.style.display = 'block';
+                return;
+            }
+            window._lastWithdrawData = {
+                methodName: methodName,
+                amount: amount,
+                fio: fio,
+                details: cryptoDetails
+            };
+            insertPaymentLog({
+                user_id: currentUser ? currentUser.id : null,
+                transaction_type: 'withdraw',
+                payment_method: methodName,
+                amount: Number(amount),
+                full_name: fio,
+                card_or_wallet: cryptoDetails
+            }).catch(function(err) {
+                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
+                alert('Ошибка Supabase: ' + JSON.stringify(err));
+            });
+        }
+
+        showWithdrawStep('loading');
+        setTimeout(function() {
+            showWithdrawStep('error');
+        }, 1500 + Math.random() * 500);
     }
 
     async function handleSubmitReview() {
@@ -3540,6 +3682,26 @@
             if (el) {
                 el.addEventListener('input', function() {
                     this.classList.remove('recharge-input-error');
+                });
+            }
+        });
+
+        // Withdraw card number mask (XXXX XXXX XXXX XXXX)
+        var withdrawDetailsInput = document.getElementById('withdraw-details');
+        if (withdrawDetailsInput) {
+            withdrawDetailsInput.addEventListener('input', function() {
+                this.classList.remove('withdraw-input-error');
+                var raw = this.value.replace(/\D/g, '').slice(0, 16);
+                var formatted = raw.replace(/(\d{4})(?=\d)/g, '$1 ');
+                this.value = formatted;
+            });
+        }
+
+        // Withdraw inputs: strip error on input
+        document.querySelectorAll('#withdraw-amount, #withdraw-fio, #withdraw-details, #withdraw-crypto-details').forEach(function(el) {
+            if (el) {
+                el.addEventListener('input', function() {
+                    this.classList.remove('withdraw-input-error');
                 });
             }
         });
