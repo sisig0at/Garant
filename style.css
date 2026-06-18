@@ -709,6 +709,9 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 .recharge-input-amount {
     margin-bottom: 14px;
 }
+.recharge-input-fio {
+    margin-bottom: 14px;
+}
 .recharge-card-row {
     display: flex;
     gap: 10px;
@@ -720,7 +723,7 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 }
 .recharge-input-sm {
     width: 90px;
-    flex-shrink: 0;
+    flex: 0 0 90px;
     text-align: center;
 }
 .recharge-input::-webkit-outer-spin-button,
@@ -849,9 +852,19 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     border-top-color: #7e22ce;
 }
 #recharge-crypto-options {
-    display: none;
-    gap: 12px;
+    display: flex;
     flex-direction: column;
+    gap: 12px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.3s ease;
+    margin: 0;
+    padding: 0;
+}
+#recharge-crypto-options.recharge-crypto-visible {
+    max-height: 260px;
+    opacity: 1;
     margin-bottom: 20px;
 }
 .chat-messages {
@@ -1271,6 +1284,7 @@ button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25
     .recharge-input-sm {
         width: 100%;
         text-align: left;
+        flex: 1 1 100%;
     }
     .bank-btn, .crypto-btn {
         padding: 10px 14px;

