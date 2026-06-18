@@ -775,6 +775,102 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     color: #b91c1c;
 }
 
+.terms-link:hover {
+    text-decoration: underline !important;
+    opacity: 0.8;
+}
+.terms-modal-content {
+    max-width: 720px !important;
+    max-height: 85vh;
+    padding: 0 !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.terms-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid rgba(139,92,246,0.2);
+}
+.terms-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #a78bfa;
+}
+.terms-close-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.terms-close-btn:hover {
+    color: #fff;
+}
+.light-theme .terms-close-btn:hover {
+    color: #1a1a2e;
+}
+.terms-modal-body {
+    padding: 24px 28px 32px;
+    overflow-y: auto;
+    flex: 1;
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.7;
+    scrollbar-width: thin;
+    scrollbar-color: #4a1d96 transparent;
+}
+.terms-modal-body h3 {
+    color: #a78bfa;
+    font-size: 16px;
+    margin: 0 0 18px;
+    font-weight: bold;
+}
+.terms-modal-body h4 {
+    color: #c084fc;
+    font-size: 14px;
+    margin: 18px 0 8px;
+    font-weight: 600;
+}
+.terms-modal-body p {
+    margin: 4px 0;
+    padding-left: 4px;
+}
+.terms-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.terms-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.terms-modal-body::-webkit-scrollbar-thumb {
+    background: #4a1d96;
+    border-radius: 3px;
+}
+.light-theme .terms-modal-body {
+    color: #374151;
+}
+.light-theme .terms-modal-body h3 {
+    color: #7e22ce;
+}
+.light-theme .terms-modal-body h4 {
+    color: #9333ea;
+}
+.light-theme .terms-modal-header {
+    border-bottom-color: rgba(147,51,234,0.15);
+}
+#termsModal {
+    animation: termsFadeIn 0.25s ease;
+}
+@keyframes termsFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .modal-buttons-group {
     display: flex;
     gap: 15px;

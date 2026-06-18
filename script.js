@@ -2146,6 +2146,14 @@
         modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
     }
 
+    function showTermsModal() {
+        var modal = document.getElementById('termsModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        document.getElementById('closeTermsModal').onclick = function() { modal.style.display = 'none'; };
+        modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+    }
+
     // ===== EVENT DELEGATION =====
 
     document.addEventListener('click', function(e) {
