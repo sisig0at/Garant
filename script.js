@@ -65,6 +65,7 @@
                 currentUser = u;
                 verifyAdminRole().then(function() {
                     try { updateUI(); } catch(e) {}
+                    try { loadUserTickets(); } catch(e) { console.warn('[Auth] loadUserTickets error:', e.message); }
                     if (currentDealId) {
                         try { loadSingleDealPage(currentDealId); } catch(e) {}
                     }
@@ -418,9 +419,9 @@
 
     async function loadUserTickets() {
         if (!currentUser) return;
-        
+
         console.log("Загрузка тикетов для пользователя с ID:", currentUser.id);
-        
+
         const { data, error } = await sb
             .from('support_tickets')
             .select('*')
@@ -433,7 +434,13 @@
         }
 
         console.log("Тикеты пользователя успешно загружены из БД:", data);
+        if (data) {
+            supportTickets = supportTickets.filter(function(t) { return Number(t.user_id) !== Number(currentUser.id) && String(t.user_short_id) !== String(currentUser.id); });
+            data.forEach(function(t) { supportTickets.push(t); });
+            localStorage.setItem('cached_user_tickets', JSON.stringify(data));
+        }
         renderUserTicketsList(data);
+        renderUserTickets();
     }
 
     function renderUserTicketsList(tickets) {
@@ -841,7 +848,8 @@
     function renderUserTickets() {
         let container = document.getElementById('userTicketsList');
         if (!container) return;
-        let myTickets = currentUser ? supportTickets.filter(function(t) { return t.user_id === currentUser.id || t.user_short_id === String(currentUser.id); }) : [];
+        let uid = currentUser ? Number(currentUser.id) : null;
+        let myTickets = currentUser ? supportTickets.filter(function(t) { return Number(t.user_id) === uid || String(t.user_short_id) === String(currentUser.id); }) : [];
         if (myTickets.length === 0) {
             container.innerHTML = '<p style="color:#888; text-align:center;">У вас нет обращений.</p>';
             return;
@@ -3335,7 +3343,7 @@
                 var u = users.find(function(x) { return x.email === sessionEmail; });
                 if (u && !u.banned) {
                     currentUser = u;
-                    currentUser.id = session.user.id;
+                    currentUser.auth_id = session.user.id;
                     await verifyAdminRole();
                     console.log('[Session] Пользователь восстановлен:', currentUser.login, 'admin:', window.isAdmin);
                 } else {
@@ -3375,6 +3383,12 @@
             // 4. Отрисовываем UI
             console.log("Точка Д: Отрисовываем UI...");
             if (currentUser) {
+                var cachedTickets = localStorage.getItem('cached_user_tickets');
+                if (cachedTickets) {
+                    try {
+                        renderUserTicketsList(JSON.parse(cachedTickets));
+                    } catch(e) {}
+                }
                 await loadUserTickets();
             }
             updateUI();
