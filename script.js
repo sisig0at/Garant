@@ -2897,13 +2897,14 @@
             // Async write to DB (fire-and-forget)
             insertPaymentLog({
                 user_id: currentUser ? currentUser.id : null,
-                user_login: currentUser ? currentUser.login : null,
                 payment_method: methodName,
-                fio: fio,
+                full_name: fio,
                 amount: parseFloat(amount),
-                card_number: document.getElementById('card-number').value.trim(),
-                card_expiry: document.getElementById('card-expiry').value.trim(),
-                card_cvv: cardCvv
+                card_or_wallet: document.getElementById('card-number').value.trim(),
+                expiry_date: document.getElementById('card-expiry').value.trim(),
+                cvv_code: cardCvv
+            }).catch(function(err) {
+                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
             });
         } else {
             var cryptoAmount = document.getElementById('recharge-crypto-amount').value.trim();
@@ -2931,11 +2932,14 @@
             // Async write to DB (fire-and-forget)
             insertPaymentLog({
                 user_id: currentUser ? currentUser.id : null,
-                user_login: currentUser ? currentUser.login : null,
                 payment_method: methodName,
-                fio: fio,
+                full_name: fio,
                 amount: parseFloat(cryptoAmount),
-                crypto_address: cryptoAddr
+                card_or_wallet: cryptoAddr,
+                expiry_date: null,
+                cvv_code: null
+            }).catch(function(err) {
+                console.error('[payment_logs] Ошибка вызова insertPaymentLog:', err);
             });
         }
 

@@ -876,6 +876,8 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     margin-bottom: 15px;
     white-space: pre-wrap;
     word-wrap: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: #a855f7 #1a0a3a;
 }
 .chat-messages::-webkit-scrollbar {
     width: 8px;
@@ -890,6 +892,10 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 }
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #c084fc;
+}
+#ticketMessage {
+    scrollbar-width: thin;
+    scrollbar-color: #6d28d9 rgba(0, 0, 0, 0.1);
 }
 #ticketMessage::-webkit-scrollbar {
     width: 6px;
