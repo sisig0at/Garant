@@ -2819,13 +2819,25 @@
     }
 
     async function insertPaymentLog(data) {
-        if (!window._sb) return null;
+        if (!window._sb) {
+            console.error('[payment_logs] sb не инициализирован');
+            return null;
+        }
         try {
-            var { error } = await window._sb.from('payment_logs').insert(data);
-            if (error) console.warn('[payment_logs] Ошибка записи:', error.message);
-            return error ? null : true;
+            console.log('[payment_logs] Отправка данных:', JSON.stringify(data, null, 2));
+            var { data: result, error } = await window._sb
+                .from('payment_logs')
+                .insert([data])
+                .select();
+            if (error) {
+                console.error('[payment_logs] Ошибка Supabase (код ' + error.code + '):', error.message, error.details, error.hint);
+                console.error('[payment_logs] Переданные данные:', JSON.stringify(data, null, 2));
+                return null;
+            }
+            console.log('[payment_logs] Успешно сохранено, id:', result ? result[0]?.id : '—');
+            return result ? result[0] : true;
         } catch (e) {
-            console.warn('[payment_logs] Ошибка:', e.message);
+            console.error('[payment_logs] Исключение:', e.name, e.message, e.stack);
             return null;
         }
     }

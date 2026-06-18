@@ -874,6 +874,8 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
     border-radius: 28px;
     padding: 18px;
     margin-bottom: 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .chat-messages::-webkit-scrollbar {
     width: 8px;
@@ -888,6 +890,20 @@ input:focus, select:focus { border-color: #d8b4fe; outline: none; box-shadow: 0 
 }
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #c084fc;
+}
+#ticketMessage::-webkit-scrollbar {
+    width: 6px;
+}
+#ticketMessage::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+#ticketMessage::-webkit-scrollbar-thumb {
+    background: #6d28d9;
+    border-radius: 4px;
+}
+#ticketMessage::-webkit-scrollbar-thumb:hover {
+    background: #a855f7;
 }
 .message {
     margin-bottom: 14px;
