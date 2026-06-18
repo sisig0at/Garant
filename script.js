@@ -1834,6 +1834,9 @@
             .on('broadcast', { event: 'broadcast' }, function(payload) {
                 if (payload && (payload.message || payload.text)) {
                     var msg = payload.message || payload.text;
+                    if (payload.broadcast_id) {
+                        localStorage.setItem('last_broadcast_id', payload.broadcast_id);
+                    }
                     window.appNotifications.unshift({ text: '📢 ' + msg, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) });
                     if (window.appNotifications.length > 4) window.appNotifications.pop();
                     var list = document.getElementById('notifications-list');
@@ -1882,6 +1885,48 @@
                 });
         } catch(e) {
             console.warn('[Realtime] Не удалось подключить Presence:', e);
+        }
+
+        // ---- Подписка на изменения latest_broadcast в platform_settings ----
+        sb.channel('platform-broadcast-settings')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_settings', filter: 'key=eq.latest_broadcast' }, function(payload) {
+                var value = payload.new ? payload.new.value : null;
+                if (!value) return;
+                try {
+                    var data = JSON.parse(value);
+                    var lastSeen = localStorage.getItem('last_broadcast_id');
+                    if (data.id && data.id !== lastSeen) {
+                        localStorage.setItem('last_broadcast_id', data.id);
+                        showNotification('📢 Рассылка: ' + data.message);
+                    }
+                } catch(e) {
+                    console.warn('[Broadcast] Ошибка парсинга latest_broadcast:', e.message);
+                }
+            })
+            .subscribe(function(status) {
+                console.log('[Realtime] Статус канала platform-broadcast-settings:', status);
+            });
+    }
+
+    // ===== ПРОВЕРКА ПОСЛЕДНЕЙ РАССЫЛКИ (для оффлайн-пользователей и fallback) =====
+
+    async function checkLatestBroadcast() {
+        try {
+            var { data, error } = await sb.from('platform_settings').select('value').eq('key', 'latest_broadcast').maybeSingle();
+            if (error) {
+                console.warn('[Broadcast] Ошибка запроса latest_broadcast:', error.message);
+                return;
+            }
+            if (data && data.value) {
+                var broadcast = JSON.parse(data.value);
+                var lastSeen = localStorage.getItem('last_broadcast_id');
+                if (broadcast.id && broadcast.id !== lastSeen) {
+                    localStorage.setItem('last_broadcast_id', broadcast.id);
+                    showNotification('📢 Рассылка: ' + broadcast.message);
+                }
+            }
+        } catch(e) {
+            console.log('[Broadcast] Ошибка checkLatestBroadcast:', e.message);
         }
     }
 
@@ -3176,17 +3221,24 @@
         } else showToast('Введите число');
     }
 
-    function handleSendBroadcast() {
+    async function handleSendBroadcast() {
         if (!currentUser || currentUser.role !== 'admin') return;
         var msg = document.getElementById('broadcastMsg').value.trim();
         if (!msg) return;
+        var broadcastId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        var broadcastData = { id: broadcastId, message: msg, created_at: new Date().toISOString() };
+        try {
+            await sb.from('platform_settings').upsert({ key: 'latest_broadcast', value: JSON.stringify(broadcastData) }, { onConflict: 'key' });
+        } catch(e) {
+            console.error('[Broadcast] DB save error:', e.message);
+        }
         sb.channel('global-broadcast').send({
             type: 'broadcast',
             event: 'broadcast',
-            payload: { message: msg }
+            payload: { message: msg, broadcast_id: broadcastId }
         });
         showNotification('📢 Рассылка: ' + msg);
-        showToast('📢 Рассылка отправлена всем пользователям');
+        showToast('📢 Рассылка успешно отправлена всем пользователям');
         document.getElementById('broadcastMsg').value = '';
     }
 
@@ -3341,6 +3393,9 @@
             setupRealtimeSubscriptions();
             subscribeOnlineCounter();
 
+            // 6.5 Проверка последней рассылки (для оффлайн-пользователей)
+            await checkLatestBroadcast();
+
             // 7.5 Авто-удаление старых закрытых тикетов
             await autoDeleteOldClosedTickets();
 
@@ -3364,6 +3419,9 @@
                     preloader.remove();
                 }, 500);
             }
+
+            // Периодическая проверка новых рассылок (раз в 30 секунд)
+            setInterval(checkLatestBroadcast, 30000);
 
             console.log('[Init] Инициализация завершена');
         }
