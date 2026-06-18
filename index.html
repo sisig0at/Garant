@@ -24,6 +24,7 @@
             <a data-page="deals" id="navDeals" style="display:none;"><i class="fas fa-handshake"></i> Сделки</a>
             <a data-page="reviews" id="navReviews" style="display:none;"><i class="fas fa-star"></i> Отзывы</a>
             <a data-page="support" id="navSupport" style="display:none;"><i class="fas fa-headset"></i> Поддержка</a>
+            <a data-page="about"><i class="fas fa-info-circle"></i> О сайте</a>
             <a data-page="admin" id="navAdmin" style="display:none;"><i class="fas fa-crown"></i> Админ</a>
         </div>
         <div class="user-info" style="display:flex; align-items:center; gap:20px;">
@@ -297,6 +298,96 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- О САЙТЕ -->
+        <div id="aboutPage" class="hidden-page">
+            <div class="about-hero">
+                <div class="about-hero-content">
+                    <i class="fas fa-shield-halved about-hero-icon"></i>
+                    <h1>VioletGuard — Ваш безопасный гарант-сервис</h1>
+                    <p class="about-hero-subtitle">Мы обеспечиваем безопасные сделки между продавцами и покупателями с 2024 года. Тысячи успешных транзакций, сотни довольных клиентов.</p>
+                </div>
+            </div>
+
+            <div class="card about-card">
+                <h3><i class="fas fa-scroll"></i> Наша история</h3>
+                <p>VioletGuard был создан группой энтузиастов, которые столкнулись с проблемой мошенничества при онлайн-сделках. Мы поняли, что рынку не хватает надёжного посредника, который бы гарантировал безопасность как для продавца, так и для покупателя. Так родился наш сервис.</p>
+                <p>За первый год работы мы провели более 500 сделок, вернув доверие в мир цифровых транзакций. Сегодня VioletGuard — это команда профессионалов, использующая современные технологии для защиты ваших средств.</p>
+            </div>
+
+            <div class="card about-card">
+                <h3><i class="fas fa-bullseye"></i> Наша миссия</h3>
+                <p>Мы стремимся сделать онлайн-сделки максимально безопасными и прозрачными. Каждая транзакция проходит через систему эскроу: деньги покупателя замораживаются на счёте гаранта и переводятся продавцу только после подтверждения выполнения обязательств.</p>
+            </div>
+
+            <div class="about-stats">
+                <div class="stat-card">
+                    <i class="fas fa-handshake"></i>
+                    <span class="stat-number">500+</span>
+                    <span class="stat-label">Успешных сделок</span>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-users"></i>
+                    <span class="stat-number">1000+</span>
+                    <span class="stat-label">Пользователей</span>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-shield"></i>
+                    <span class="stat-number">99.9%</span>
+                    <span class="stat-label">Безопасность</span>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">Поддержка</span>
+                </div>
+            </div>
+
+            <div class="card about-card">
+                <h3><i class="fas fa-medal"></i> Наши преимущества</h3>
+                <div class="about-advantages">
+                    <div class="advantage-item">
+                        <i class="fas fa-lock"></i>
+                        <div>
+                            <strong>Безопасность</strong>
+                            <p>Современное шифрование и защита данных. Ваши средства в надёжных руках.</p>
+                        </div>
+                    </div>
+                    <div class="advantage-item">
+                        <i class="fas fa-bolt"></i>
+                        <div>
+                            <strong>Скорость</strong>
+                            <p>Автоматизированная обработка сделок. Средства поступают мгновенно.</p>
+                        </div>
+                    </div>
+                    <div class="advantage-item">
+                        <i class="fas fa-headset"></i>
+                        <div>
+                            <strong>Поддержка 24/7</strong>
+                            <p>Круглосуточная поддержка через тикет-систему. Решаем любые вопросы.</p>
+                        </div>
+                    </div>
+                    <div class="advantage-item">
+                        <i class="fas fa-scale-balanced"></i>
+                        <div>
+                            <strong>Прозрачность</strong>
+                            <p>Полная история транзакций и арбитраж при спорных ситуациях.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card about-card">
+                <h3><i class="fas fa-gavel"></i> Правовая информация</h3>
+                <p>VioletGuard зарегистрирован в установленном законом порядке. Все сделки проводятся в соответствии с законодательством РФ. Мы не несём ответственности за предмет сделки, а лишь гарантируем безопасность передачи денежных средств.</p>
+                <p>Используя сервис, вы соглашаетесь с <a href="#" onclick="event.preventDefault(); document.getElementById('termsModal').style.display='flex';">условиями пользовательского соглашения</a>.</p>
+            </div>
+
+            <div class="about-disclaimer">
+                <i class="fas fa-triangle-exclamation"></i>
+                <p>VioletGuard является гарант-сервисом и не проводит азартные игры, лотереи или иные виды деятельности, подлежащие отдельному лицензированию. Сервис предназначен исключительно для обеспечения безопасности сделок между физическими и юридическими лицами. Все материалы на сайте носят информационный характер. Администрация не несёт ответственности за возможные убытки, связанные с использованием сервиса.</p>
             </div>
         </div>
 
