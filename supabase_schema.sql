@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
     value TEXT NOT NULL
 );
 INSERT INTO public.platform_settings (key, value) VALUES ('online_counter', '300') ON CONFLICT DO NOTHING;
+INSERT INTO public.platform_settings (key, value) VALUES ('online_counter_updated', NOW()::text) ON CONFLICT DO NOTHING;
 
 -- ========== ВКЛЮЧЕНИЕ REALTIME ДЛЯ ТАБЛИЦ ==========
 ALTER PUBLICATION supabase_realtime ADD TABLE public.users;

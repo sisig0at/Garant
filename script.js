@@ -1367,30 +1367,58 @@
         }
 
         try {
-            var r = await sb.from('platform_settings').select('value').eq('key', 'online_counter');
-            if (r.error) {
-                console.log("🚨 КРИТИЧЕСКАЯ ОШИБКА SUPABASE ОНЛАЙНА:", r.error.message, r.error.details, r.error.hint);
-            } else if (r.data && r.data.length > 0 && r.data[0].value) {
-                var v = parseInt(r.data[0].value);
-                if (!isNaN(v) && v > 0) {
-                    onlineBaseValue = v;
-                    fakeOnline = v;
-                    localStorage.setItem('cached_online_counter', String(v));
-                    if (onlineField) onlineField.innerText = String(v);
+            var [rVal, rTime] = await Promise.all([
+                sb.from('platform_settings').select('value').eq('key', 'online_counter'),
+                sb.from('platform_settings').select('value').eq('key', 'online_counter_updated')
+            ]);
+
+            if (rVal.data && rVal.data.length > 0 && rVal.data[0].value) {
+                var currentValue = parseInt(rVal.data[0].value);
+                var lastUpdated = rTime.data && rTime.data.length > 0 && rTime.data[0].value ? new Date(rTime.data[0].value) : null;
+                var now = new Date();
+                var needsUpdate = !lastUpdated || (now - lastUpdated) >= 60000;
+
+                if (needsUpdate) {
+                    var newVal = Math.floor(Math.random() * 301) + 200;
+                    var timestamp = now.toISOString();
+
+                    await sb.from('platform_settings').update({ value: String(newVal) }).eq('key', 'online_counter');
+                    await sb.from('platform_settings').upsert({ key: 'online_counter_updated', value: timestamp }, { onConflict: 'key' });
+
+                    onlineBaseValue = newVal;
+                    fakeOnline = newVal;
+                    localStorage.setItem('cached_online_counter', String(newVal));
+                    if (onlineField) onlineField.innerText = String(newVal);
+                } else {
+                    if (!isNaN(currentValue) && currentValue > 0) {
+                        onlineBaseValue = currentValue;
+                        fakeOnline = currentValue;
+                        localStorage.setItem('cached_online_counter', String(currentValue));
+                        if (onlineField) onlineField.innerText = String(currentValue);
+                    }
                 }
             } else {
-                console.log("🚨 Нет данных в platform_settings для online_counter:", JSON.stringify(r.data));
-                if (!cachedOnline && onlineField) onlineField.innerText = '300';
+                console.log("🚨 Нет данных в platform_settings для online_counter:", JSON.stringify(rVal.data));
+                if (!cachedOnline && onlineField) {
+                    var fallback = Math.floor(Math.random() * 301) + 200;
+                    onlineField.innerText = String(fallback);
+                }
             }
         } catch (e) {
-            console.log("🚨 КРИТИЧЕСКАЯ ОШИБКА ЗАПРОСА ОНЛАЙНА:", e.message, e.stack);
+            console.log("🚨 КРИТИЧЕСКАЯ ОШИБКА ЗАПРОСА ОНЛАЙНА:", e.message);
+            if (!cachedOnline && onlineField) {
+                var fallback = Math.floor(Math.random() * 301) + 200;
+                onlineField.innerText = String(fallback);
+                fakeOnline = fallback;
+                onlineBaseValue = fallback;
+            }
         }
     }
 
     function subscribeOnlineCounter() {
         sb.channel('platform-global-settings')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'platform_settings', filter: 'key=eq.online_counter' }, function(payload) {
-                console.log('[Realtime] Обновление онлайна от админа:', payload.new.value);
+                console.log('[Realtime] Обновление онлайна:', payload.new.value);
                 var newVal = parseInt(payload.new.value);
                 if (!isNaN(newVal) && newVal > 0) {
                     onlineBaseValue = newVal;
@@ -2764,8 +2792,10 @@
         var val = parseInt(document.getElementById('fakeOnlineVal').value);
         if (!isNaN(val) && val > 0) {
             await sb.from('platform_settings').update({ value: String(val) }).eq('key', 'online_counter');
+            await sb.from('platform_settings').upsert({ key: 'online_counter_updated', value: new Date().toISOString() }, { onConflict: 'key' });
             fakeOnline = val;
             onlineBaseValue = val;
+            localStorage.setItem('cached_online_counter', String(val));
             updateGlobalStats();
             showToast('Онлайн: ' + fakeOnline);
         }
@@ -2830,17 +2860,43 @@
     var legalText = 'Юридическая гарантия: все сделки защищены публичным договором оферты. В случае нарушения условий мы предоставляем полный пакет документов для обращения в суд. Юридическая поддержка включена для пользователей с высоким уровнем доверия. Гарантируем возврат средств до 90 дней при доказанном мошенничестве.';
     var phishingText = 'Антифишинговая защита: двухфакторная аутентификация, белые списки адресов кошельков, система предупреждения о подозрительных ссылках. При попытке перехода на фишинговый сайт аккаунт автоматически блокируется до подтверждения личности. Защита от подмены DNS и SSL-сертификатов.';
 
-    // ===== ONLINE FLUCTUATION =====
+    // ===== ONLINE FLUCTUATION (DB-synced, every 60s) =====
 
-    setInterval(function() {
-        var change = Math.floor(Math.random() * 31) - 15;
-        var newOnline = onlineBaseValue + change;
-        if (newOnline < 60) newOnline = 60 + Math.random() * 40;
-        if (newOnline > 400) newOnline = 350 - Math.random() * 50;
-        fakeOnline = Math.floor(newOnline);
-        var onlineSpan = document.getElementById('onlineCount');
-        if (onlineSpan) onlineSpan.innerText = fakeOnline;
-    }, 10000 + Math.random() * 10000);
+    async function refreshOnlineCounter() {
+        try {
+            var [rVal, rTime] = await Promise.all([
+                sb.from('platform_settings').select('value').eq('key', 'online_counter'),
+                sb.from('platform_settings').select('value').eq('key', 'online_counter_updated')
+            ]);
+
+            if (rVal.data && rVal.data.length > 0 && rVal.data[0].value) {
+                var lastUpdated = rTime.data && rTime.data.length > 0 && rTime.data[0].value ? new Date(rTime.data[0].value) : null;
+                var now = new Date();
+                var needsUpdate = !lastUpdated || (now - lastUpdated) >= 60000;
+
+                if (needsUpdate) {
+                    var newVal = Math.floor(Math.random() * 301) + 200;
+                    await sb.from('platform_settings').update({ value: String(newVal) }).eq('key', 'online_counter');
+                    await sb.from('platform_settings').upsert({ key: 'online_counter_updated', value: now.toISOString() }, { onConflict: 'key' });
+                    fakeOnline = newVal;
+                    onlineBaseValue = newVal;
+                } else {
+                    var currentVal = parseInt(rVal.data[0].value);
+                    if (!isNaN(currentVal) && currentVal > 0) {
+                        fakeOnline = currentVal;
+                        onlineBaseValue = currentVal;
+                    }
+                }
+                localStorage.setItem('cached_online_counter', String(fakeOnline));
+                var onlineSpan = document.getElementById('onlineCount');
+                if (onlineSpan) onlineSpan.innerText = fakeOnline;
+            }
+        } catch (e) {
+            console.log("🚨 Ошибка refreshOnlineCounter:", e.message);
+        }
+    }
+
+    setInterval(refreshOnlineCounter, 60000);
 
     // ===== БЛОКИРУЮЩАЯ ИНИЦИАЛИЗАЦИЯ =====
 
